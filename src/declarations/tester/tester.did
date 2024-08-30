@@ -1,0 +1,101 @@
+type TokenSpec = 
+ variant {
+   Extensible: ICRC16;
+   IC: ICTokenSpec;
+ };
+type Tester = 
+ service {
+   checksubscription: (principal, vec nat, nat) -> (vec ConfirmResult);
+ };
+type SubscriptionError = 
+ variant {
+   Duplicate;
+   ICRC17Error: KYCResult;
+   InsufficientAllowance: nat;
+   InvalidDate;
+   InvalidInterval;
+   Other: record {
+            code: nat;
+            message: text;
+          };
+   SubscriptionNotFound;
+   TokenNotFound;
+   Unauthorized;
+ };
+type KYCResult = 
+ record {
+   aml: variant {
+          Fail;
+          NA;
+          Pass;
+        };
+   amount: opt nat;
+   extensible: opt ICRC16;
+   kyc: variant {
+          Fail;
+          NA;
+          Pass;
+        };
+   message: opt text;
+   timeout: opt nat;
+   token: opt TokenSpec;
+ };
+type ICTokenSpec = 
+ record {
+   canister: principal;
+   decimals: nat;
+   fee: opt nat;
+   id: opt nat;
+   standard: variant {
+               DIP20;
+               EXTFungible;
+               ICRC1;
+               Ledger;
+               Other: ICRC16;
+             };
+   symbol: text;
+ };
+type ICRC16 = 
+ variant {
+   Array: vec ICRC16;
+   Blob: blob;
+   Bool: bool;
+   Bytes: vec nat8;
+   Class: vec record {
+                immutable: bool;
+                name: text;
+                value: ICRC16;
+              };
+   Float: float64;
+   Floats: vec float64;
+   Int: int;
+   Int16: int16;
+   Int32: int32;
+   Int64: int64;
+   Int8: int8;
+   Ints: vec int;
+   Map: vec record {
+              text;
+              ICRC16;
+            };
+   Nat: nat;
+   Nat16: nat16;
+   Nat32: nat32;
+   Nat64: nat64;
+   Nat8: nat8;
+   Nats: vec nat;
+   Option: opt ICRC16;
+   Principal: principal;
+   Set: vec ICRC16;
+   Text: text;
+   ValueMap: vec record {
+                   ICRC16;
+                   ICRC16;
+                 };
+ };
+type ConfirmResult = 
+ opt variant {
+       Err: SubscriptionError;
+       Ok: nat;
+     };
+service : () -> Tester

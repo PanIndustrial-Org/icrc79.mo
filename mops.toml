@@ -1,0 +1,19 @@
+[package]
+name = "icrc-79.mo"
+version = "0.0.1"
+description = "ICRC-79 Subscription Payments for the IC"
+repository = "https://github.com/PanIndustrial-org/icrc79.mo"
+keywords = [ "subscriptions" ]
+license = "MIT"
+
+[dependencies]
+base = "0.12.1"
+map = "9.0.1"
+vector = "0.4.0"
+timer-tool = "0.0.3"
+star = "0.1.1"
+stableheapbtreemap = "1.5.0"
+sha2 = "0.1.0"
+candy = "0.3.0"
+ovs-fixed = "0.1.2"
+rep-indy-hash = "0.1.1"
