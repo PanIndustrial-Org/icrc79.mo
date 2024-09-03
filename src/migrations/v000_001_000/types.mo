@@ -305,7 +305,7 @@ module {
     };
   };
 
-  public func known_token_hash32(a : (Principal, ?Blob)) : Nat32{
+  public func knownTokenHash32(a : (Principal, ?Blob)) : Nat32{
     var accumulator = MapLib.phash.0(a.0);
     switch(a.1){
       case(null){
@@ -318,14 +318,14 @@ module {
     return accumulator;
   };
 
-  public func known_token_eq(a : (Principal, ?Blob), b : (Principal, ?Blob)) : Bool{
+  public func knownTokenEq(a : (Principal, ?Blob), b : (Principal, ?Blob)) : Bool{
     
     if(a.0 != b.0) return false;
     if(a.1 != b.1) return false;
     return true;
   };
 
-    public func known_token_compare(a : (Principal, ?Blob), b : (Principal, ?Blob)) : Order.Order {
+    public func knownTokenCompare(a : (Principal, ?Blob), b : (Principal, ?Blob)) : Order.Order {
     if(a.0 == b.0){
       switch(a.1, b.1){
         case(null, null) return #equal;
@@ -340,9 +340,9 @@ module {
     } else return Principal.compare(a.0, b.0);
   };
 
-  public let ktHash = (known_token_hash32, known_token_eq);
+  public let ktHash = (knownTokenHash32, knownTokenEq);
 
-  public func asset_hash32(a : Asset) : Nat32{
+  public func assetHash32(a : Asset) : Nat32{
     var accumulator = MapLib.thash.0(a.symbol);
     switch(a.class_){
       case(#FiatCurrency){
@@ -355,14 +355,14 @@ module {
     return accumulator;
   };
 
-  public func asset_eq(a :Asset, b : Asset) : Bool{
+  public func assetEq(a :Asset, b : Asset) : Bool{
     
     if(a.class_ != b.class_) return false;
     if(a.symbol != b.symbol) return false;
     return true;
   };
 
-    public func asset_compare(a :Asset, b : Asset) : Order.Order {
+    public func assetCompare(a :Asset, b : Asset) : Order.Order {
     if(a.class_ == b.class_){
       Text.compare(a.symbol, b.symbol);
     } else {
@@ -374,7 +374,7 @@ module {
     };
   };
 
-  public let assetHash = (asset_hash32, asset_eq);
+  public let assetHash = (assetHash32, assetEq);
 
   public func nullNHash32(a : ?Nat) : Nat32{
     let ?ab = a else return 3934983493;
@@ -404,7 +404,7 @@ module {
 
 
 
-  /// `account_hash32`
+  /// `accountHash32`
   ///
   /// Produces a 32-bit hash of an `Account` for efficient storage or lookups.
   ///
@@ -413,7 +413,7 @@ module {
   ///
   /// Returns:
   /// - `Nat32`: A 32-bit hash value representing the account.
-  public func account_hash32(a : Account) : Nat32{
+  public func accountHash32(a : Account) : Nat32{
     var accumulator = MapLib.phash.0(a.owner);
     switch(a.subaccount){
       case(null){
@@ -428,7 +428,7 @@ module {
 
   public let nullSubaccount  : Blob = "\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00\00";
 
-  /// `account_eq`
+  /// `accountEq`
   ///
   /// Compares two `Account` instances for equality.
   ///
@@ -438,7 +438,7 @@ module {
   ///
   /// Returns:
   /// - `Bool`: True if accounts are equal, False otherwise.
-  public func account_eq(a : Account, b : Account) : Bool{
+  public func accountEq(a : Account, b : Account) : Bool{
     
     if(a.owner != b.owner) return false;
     switch(a.subaccount, b.subaccount){
@@ -460,7 +460,7 @@ module {
     return true;
   };
 
-  /// `account_compare`
+  /// `accountCompare`
   ///
   /// Orders two `Account` instances.
   ///
@@ -470,7 +470,7 @@ module {
   ///
   /// Returns:
   /// - `Order.Order`: An ordering indication relative to the accounts.
-  public func account_compare(a : Account, b : Account) : Order.Order {
+  public func accountCompare(a : Account, b : Account) : Order.Order {
     if(a.owner == b.owner){
       switch(a.subaccount, b.subaccount){
         case(null, null) return #equal;
@@ -487,7 +487,7 @@ module {
     } else return Principal.compare(a.owner, b.owner);
   };
 
-  public let ahash = (account_hash32, account_eq);
+  public let ahash = (accountHash32, accountEq);
 
   ///MARK: Listeners
 
@@ -517,6 +517,15 @@ module {
     maxMemoSize: ?Nat;
   };
 
+  public type FeeDetail = {
+    service: Principal;
+    targetAccount: ?Account;
+    subscribingAccount: Account;
+    feeAccount: Account;
+    token: (Principal,?Blob);
+    feeAmount: Nat;
+  };
+
   ///MARK: environment
 
   /// `Environment`
@@ -525,9 +534,9 @@ module {
   /// for fee calculations, timestamp retrieval, and inter-canister communication.
   /// can_transfer supports evaluating the transfer from both sync and async function.
   public type Environment = {
-    add_ledger_transaction: ?(<system>(Value, ?Value) -> Nat);
+    addLedgerTransaction: ?(<system>(Value, ?Value) -> Nat);
     tt: TTLib.TimerTool;
-    canSendFee: ?((Account, Account, Principal, Nat) -> Bool);
+    canSendFee: ?((FeeDetail) -> Bool); 
     advanced: ?{
       icrc85 : ?{
         kill_switch: ?Bool;

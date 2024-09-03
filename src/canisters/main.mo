@@ -63,17 +63,18 @@ shared (deployer) actor class Subs(initArgs: ?{
 
   private func getICRC79Environment<system>() : ICRC79.Environment {
     return {
-      add_ledger_transaction = null; //todo: set up icrc3;
+      addLedgerTransaction = null; //todo: set up icrc3;
       canSendFee = ?blockCharlie;
       tt = tt<system>();
       advanced = null;
     };
   };
 
-  private func blockCharlie(fromAccount: ICRC79.Account, toAccount: ICRC79.Account, canister: Principal, fee: Nat) : Bool {
+  private func blockCharlie(detail : ICRC79.FeeDetail) : Bool {
     
-    debug if(debug_channel.announce) D.print("Subs: blockCharlie" # debug_show(fromAccount) # debug_show(toAccount) # debug_show(canister) # debug_show(fee));
-    if(fromAccount.owner == Principal.fromText("dnpjs-7k32s-jd4uz-xqxaq-qgg7q-nfkuq-xwqfx-t7yfg-7ezxh-si2a4-kqe")){ // Charlie from pic.js
+    debug if(debug_channel.announce) D.print("Subs: blockCharlie" # debug_show(detail));
+
+    if(detail.subscribingAccount.owner == Principal.fromText("dnpjs-7k32s-jd4uz-xqxaq-qgg7q-nfkuq-xwqfx-t7yfg-7ezxh-si2a4-kqe")){ // Charlie from pic.js
       return false;
     };
     return true;
@@ -192,49 +193,49 @@ shared (deployer) actor class Subs(initArgs: ?{
     public query func icrc79_metadata() : async [(Text, Service.Value)] {
         // Implementation of metadata retrieval logic
         [
-          ("icrc79:max_query_batch_size", #Nat(q_icrc79().get_state().maxQueries)),
-          ("icrc79:max_update_batch_size", #Nat(q_icrc79().get_state().maxUpdates)),
-          ("icrc79:default_take_value", #Nat(q_icrc79().get_state().defaultTake)),
-          ("icrc79:max_take_value", #Nat(q_icrc79().get_state().maxTake)),
-          ("icrc79:max_memo_size", #Nat(q_icrc79().get_state().maxMemoSize)),
-          ("icrc79:tx_window", #Nat(q_icrc79().get_state().trxWindow)),
-          ("icrc79:permitted_drift", #Nat(q_icrc79().get_state().minDrift)),
+          ("icrc79:max_query_batch_size", #Nat(q_icrc79().getState().maxQueries)),
+          ("icrc79:max_update_batch_size", #Nat(q_icrc79().getState().maxUpdates)),
+          ("icrc79:default_take_value", #Nat(q_icrc79().getState().defaultTake)),
+          ("icrc79:max_take_value", #Nat(q_icrc79().getState().maxTake)),
+          ("icrc79:max_memo_size", #Nat(q_icrc79().getState().maxMemoSize)),
+          ("icrc79:tx_window", #Nat(q_icrc79().getState().trxWindow)),
+          ("icrc79:permitted_drift", #Nat(q_icrc79().getState().minDrift)),
         ];
     };
 
     public query func icrc79_max_query_batch_size() : async Nat {
         // Implementation of max query batch size logic
-        q_icrc79().get_state().maxQueries;
+        q_icrc79().getState().maxQueries;
     };
 
     public query func icrc79_max_update_batch_size() : async Nat {
         // Implementation of max update batch size logic
-        q_icrc79().get_state().maxUpdates;
+        q_icrc79().getState().maxUpdates;
     };
 
     public query func icrc79_default_take_value() : async Nat {
         // Implementation of default take value logic
-        q_icrc79().get_state().defaultTake;
+        q_icrc79().getState().defaultTake;
     };
 
     public query func icrc79_max_take_value() : async Nat {
         // Implementation of max take value logic
-        q_icrc79().get_state().maxTake;
+        q_icrc79().getState().maxTake;
     };
 
     public query func icrc79_max_memo_size() : async Nat {
         // Implementation of max memo size logic
-        q_icrc79().get_state().maxMemoSize;
+        q_icrc79().getState().maxMemoSize;
     };
 
     public query func icrc79_tx_window() : async Nat {
         // Implementation of tx window logic
-        q_icrc79().get_state().trxWindow; // 24 hours
+        q_icrc79().getState().trxWindow; // 24 hours
     };
 
     public query func icrc79_permitted_drift() : async Nat {
         // Implementation of permitted drift logic
-        q_icrc79().get_state().minDrift;//  1 minute
+        q_icrc79().getState().minDrift;//  1 minute
     };
 
     ///MARK: Admin Functions

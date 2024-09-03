@@ -74,10 +74,10 @@ module {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
-      top.add( ("btype", #Text("subscriptionRequest")));
+      top.add( ("btype", #Text("79subRequest")));
       top.add( ("ts", #Nat(time))); 
 
-      items.add( ("btype", #Text("subscriptionRequest")));
+      items.add( ("btype", #Text("79subRequest")));
       items.add( ("creator",#Blob(Principal.toBlob(caller))));
       items.add( ("tokenCanister",#Blob(Principal.toBlob(item.tokenCanister))));
       items.add( ("interval",#Text(intervalToText(item.interval))));
@@ -107,11 +107,11 @@ module {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
-      top.add( ("btype", #Text("subscriptionCreate")));
+      top.add( ("btype", #Text("79subCreate")));
       top.add( ("ts", #Nat(time))); 
       //todo: add the base rate asset
 
-      items.add( ("btype", #Text("subscriptionCreate")));
+      items.add( ("btype", #Text("79subCreate")));
       items.add( ("subscriptionId",#Nat(item.subscriptionId)));
       items.add( ("creator",#Blob(Principal.toBlob(caller))));
       items.add( ("tokenCanister",#Blob(Principal.toBlob(item.tokenCanister))));
@@ -142,10 +142,10 @@ module {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
-      top.add( ("btype", #Text("subCancel")));
+      top.add( ("btype", #Text("79subCancel")));
       top.add( ("ts", #Nat(time))); 
 
-      items.add( ("btype", #Text("subCancel")));
+      items.add( ("btype", #Text("79subCancel")));
       items.add( ("subscriptionId",#Nat(item.subscriptionId)));
       items.add( ("canceller",#Blob(Principal.toBlob(caller))));
       items.add( ("cancelReason",#Text(reason)));
@@ -159,10 +159,10 @@ module {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
-      top.add( ("btype", #Text("SubscriptionStatusUpdate")));
+      top.add( ("btype", #Text("79subStatus")));
       top.add( ("ts", #Nat(time))); 
 
-      items.add( ("btype", #Text("SubscriptionStatusUpdate")));
+      items.add( ("btype", #Text("79subStatus")));
       items.add( ("subscriptionId",#Nat(item.subscriptionId)));
       items.add( ("caller",#Blob(Principal.toBlob(caller))));
       items.add( ("statusReason",#Text(reason)));
@@ -176,10 +176,10 @@ module {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
-      top.add( ("btype", #Text("subCancel")));
+      top.add( ("btype", #Text("79subCancel")));
       top.add( ("ts", #Nat(time))); 
 
-      items.add( ("btype", #Text("subCancel")));
+      items.add( ("btype", #Text("79subCancel")));
       items.add( ("subscriptionId",#Nat(item.subscriptionId)));
       items.add( ("canceller",#Blob(Principal.toBlob(caller))));
       items.add( ("cancelReason",#Text(reason)));
@@ -193,10 +193,10 @@ module {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
-      top.add( ("btype", #Text("SubscriptionStatusUpdate")));
+      top.add( ("btype", #Text("79subStatus")));
       top.add( ("ts", #Nat(time))); 
 
-      items.add( ("btype", #Text("SubscriptionStatusUpdate")));
+      items.add( ("btype", #Text("79subStatus")));
       items.add( ("subscriptionId",#Nat(item.subscriptionId)));
       items.add( ("caller",#Blob(Principal.toBlob(caller))));
       items.add( ("statusReason",#Text(reason)));
@@ -254,9 +254,10 @@ module {
     let items = Buffer.Buffer<(Text, Value)>(1);
     let top = Buffer.Buffer<(Text, Value)>(1);
 
-    top.add( ("btype", #Text("payment")));
+    top.add( ("btype", #Text("79payment")));
     top.add( ("ts", #Nat(time))); 
 
+    items.add( ("btype", #Text("79payment")));
     items.add( ("subscriptionId",#Nat(item.subscriptionId)));
     items.add( ("amount",#Nat(item.amount)));
     switch(item.rate){

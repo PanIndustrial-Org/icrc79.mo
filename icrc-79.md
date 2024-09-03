@@ -43,11 +43,10 @@ type Interval = variant {
       endDate: Nat; // Optional: Timestamp in nanoseconds to end the subscription
       targetAccount: Account; //Optional: Account to pay the subscription to, defaults to the service canister default account if not provided
       productId: Nat; //Optional: Vendor specified product id
-      ICRC17Endpoint: Principal; // Optional KYC validation endpoint
       firstPayment: Nat; //Optional: set a time for the first regular payment.  If not set, the first payment will be immediate
       nowPayment: Nat; //Optional. set a token amount to process immediately. If first payment is set this will cause immediate payment of this amount.
       memo: Blob; //Optional: memo to include with the subscription
-      create_at_time: Nat; //Optional: timestamp for deduplication
+      createdAtTime: Nat; //Optional: timestamp for deduplication
       subaccount: Blob; //Optional: subaccount to use for the subscription
   };
 
@@ -60,11 +59,10 @@ type Interval = variant {
       endDate;
       targetAccount;
       productId;
-      ICRC17Endpoint;
       firstPayment;
       nowPayment;
       memo;
-      create_at_time;
+      createdAtTime;
       subaccount;
   };
 
@@ -86,7 +84,6 @@ type SubscriptionError = variant {
   InsufficientAllowance : nat;
   InvalidDate;
   InvalidInterval;
-  ICRC17Error: KYCResult;
   Other: {
     code: nat;
     message: text;
@@ -186,7 +183,6 @@ type Subscription = record {
     exchangeRate: opt ExchangeRate;
     endDate: opt nat; // Timestamp in nanoseconds to end the subscription
     targetAccount: ?Account;
-    ICRC17Endpoint: opt principal; // Optional KYC validation endpoint
     productId: opt nat;
     account: Account;
     nextPayment: opt nat;
@@ -375,10 +371,9 @@ let subscriptionRequest = {
     endDate: opt null;
     targetAccount: {...};
     productId: opt 123;
-    ICRC17Endpoint: opt null;
     firstPayment: opt null;
     memo: blob "New Subscription";
-    create_at_time: Nat64.now();
+    createdAtTime: Nat64.now();
     subaccount: opt null
 };
 ```
@@ -513,6 +508,18 @@ Allows a service provider to fetch notifications related to the subscriptions un
 icrc79_get_service_notifications: (prev: opt nat, take: opt nat) -> async vec ServiceNotification;
 ```
 
+### icrc10_supported_standards
+
+An implementation of ICRC-79 MUST implement the method `icrc10_supported_standards` as put forth in ICRC-10.
+
+The result of the call MUST always have at least the following entries:
+
+```candid
+
+record { name = "ICRC-10"; url = "https://github.com/dfinity/ICRC/ICRCs/ICRC-10"; }
+record { name = "ICRC-79"; url = "https://github.com/dfinity/ICRC/ICRCs/ICRC-79"; }
+```
+
 ## ICRC-79 Block Schema
 
 ICRC-79 expands on the ICRC-3 specification for defining the format for storing transactions in blocks of the log of the subscription ledger. Below, we define the concrete block schema for ICRC-79 as an extension of the ICRC-3 block schema. This schema must be implemented by a ledger implementing ICRC-79 if it claims to align its logs with ICRC-3 through the method listing the supported standards.
@@ -521,7 +528,7 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
 
 #### Subscription Creation Block Schema
 
-1. **Block Type (`btype`):** `"subCreate"`
+1. **Block Type (`btype`):** `"79subCreate"`
 2. **Transaction (`tx`) Contents:**
    - `subscriptionId: Value.Nat` - Identifier of the new subscription.
    - `creator: Value.Principal` - Principal ID of the user initiating the subscription.
@@ -531,14 +538,13 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
    - `amtPerInterval: Value.Nat` - Tokens transferred per interval.
    - `endDate: Value.Opt(Value.Nat)` - Optional timestamp of when the subscription should end.
    - `targetAccount: Value.Array([Value.Blob,?Value.Blob]` - Serialized account to which tokens are sent.
-   - `icrc17: Value.Opt(Value.Principal)` - Optional principal of the ICRC-17 KYC endpoint.
    - `status: Value.Text` - Initial status of the subscription.
    - `memo: Value.Opt(Value.Text)` - Optional additional information about the subscription.
    - `createdAt: Value.Nat` - Timestamp of when the subscription was created.
 
 #### Subscription Cancel Block Schema
 
-1. **Block Type (`btype`):** `"subCancel"`
+1. **Block Type (`btype`):** `"79subCancel"`
 2. **Transaction (`tx`) Contents:**
    - `subscriptionId: Value.Nat` - Identifier of the canceled subscription.
    - `canceller: Value.Principal` - Principal ID of the user or service that canceled the subscription.
@@ -547,7 +553,7 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
 
 #### Subscription Status Change Block Schema
 
-1. **Block Type (`btype`):** `"SubscriptionStatusUpdate"`
+1. **Block Type (`btype`):** `"79subStatus"`
 2. **Transaction (`tx`) Contents:**
    - `subscriptionId: Value.Nat` - Identifier of the subscription.
    - `caller: Value.Principal` - Principal ID of the user or service that made the status change.
@@ -557,7 +563,7 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
 
 #### Payment Transaction Block Schema
 
-1. **Block Type (`btype`):** `"PaymentTransaction"`
+1. **Block Type (`btype`):** `"79payment"`
 2. **Transaction (`tx`) Contents:**
    - `trxID: Value.Nat` - Unique identifier of the payment on the token ledger.
    - `subscriptionId: Value.Nat` - Related subscription identifier.
@@ -573,7 +579,9 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
 
 #### Notification Block Schema
 
-1. **Block Type (`btype`):** `"SubscriptionNotification"`
+Notification blocks are optional and my implemented at the discretion of the implementation.
+
+1. **Block Type (`btype`):** `"79subNote"`
 2. **Transaction (`tx`) Contents:**
    - `notificationId: Value.Nat` - Unique identifier for the notification.
    - `subscriptionId: Value.Nat` - Identifier of the related subscription.
@@ -653,33 +661,11 @@ icrc79_metadata : () -> (vec record { text; Value } ) query;
 
 The icrc79_subscribe functions should be subject to transaction deduplication as specified previously in [ICRC-7](https://github.com/dfinity/ICRC/blob/main/ICRCs/ICRC-7/ICRC-7.md#transaction-deduplication).
 
-## Integrating ICRC-17 KYC Checks into Subscriptions
-
-
-To ensure that subscribers meet KYC compliance standards as set by varying jurisdictions, and to provide a secure environment for both service providers and subscribers, the ICRC-79 standard incorporates an optional integration with the ICRC-17 KYC standard. This allows subscriptions to be linked with a designated ICRC-17 compliant KYC service canister.
-
 #### ICRC-17 KYC Service Integration
 
-For any subscription that requires KYC validation, the `SubscriptionRequest` can specify an `ICRC17Endpoint`, which is the principal of a KYC service canister adhering to the ICRC-17 standard. This inclusion enables automated KYC checks at subscription creation and potentially at recurring intervals, depending on the service requirement and regulatory guidelines.
+ICRC-17 KYC Service integration is not directly supported inside of ICRC-79.  For services that would like to implement ICRC-17 for regulatory and compliance reasons, the following architectural suggestions are provided:
 
-#### Subscription Request with KYC
+1. Fees - for brokers or public goods accounts that want control over receiving fees from only known good actors or who wish to block the receiving of fees from specific accounts, we recommend setting the target accounts to accounts on an ICRC-17 compliant relayer that may validate a payment from an ICRC-17 source before forwarding it to an final destination and/or returning the fee otherwise.
 
-Below defines enhancements in the `SubscriptionRequest` data type to include the KYC endpoint, and describes the KYC validation process during the subscription set-up:
+2. Validating Subscribers - For services that would like to validate that their subscribers via ICRC-17 or other authorization protocols, we advise handling check in at the service level and returning the funds and canceling the subscription if the user does not pass. Services may use the firstPayment option to delay payment to some point in the future giving your service time to check the credentials.
 
-```candid
-type SubscriptionRequest = record {
-    ...
-    ICRC17Endpoint: opt principal; // Optional KYC validation endpoint
-    ...
-};
-```
-
-#### KYC Validation Process
-
-1. **Subscription Creation**: When a new subscription request is made (`icrc79_subscribe` call), and if the `ICRC17Endpoint` is provided, the subscription canister sends a KYC check request to the KYC canister using `icrc17_kyc_request` method.
-   
-2. **KYC Canister Request and Response**: The KYC canister processes the request and returns a `KYCResult`. Depending on the result (`Pass` or `Fail`), the subscription canister decides whether to proceed with subscription creation or not.
-   
-3. **Handling KYC Results**:
-   - If `KYCResult.kyc` is `Pass`, the subscription process continues, setting up the subscription accordingly.
-   - If `KYCResult.kyc` is `Fail` or requires further information (`NA`), the subscription request is rejected, and an appropriate error message is returned to the subscriber.

@@ -17,7 +17,6 @@ ICRC-79 proposes Subscription Service allows you to manage periodic payment requ
 - **ICRC-72 Compliance**: (not yet implemented) Adheres to the Pub/Sub Standard for publishing subscription payments and subscription changes to your smart contract.
 - **Dynamic Exchange Rates**: (non yet implemented)Integrates with the Exchange Rate Canister (XRC) for real-time currency conversion.
 - **Flexible Intervals**: Supports various intervals like hourly, daily, weekly, monthly, yearly, and custom intervals.
-- **KYC Integration**: (not yet implemented)Optional integration with ICRC-17 for KYC compliance.
 - **Transaction Deduplication**: Prevents duplicate transactions ensuring reliable payment processes.
 - **Rich Querying**: Comprehensive querying options to fetch subscription and payment details.
 
@@ -33,6 +32,45 @@ Please visit https://github.com/ZenVoich/mops for mops prerequisits
 import ICRC79 "mo:icrc79-mo";
 import ICRC79Types "mo:icrc79-mo/migration/types";
 import ICRC79Service "mo:icrc79-mo/Service";
+
+public type Environment = {
+  addLedgerTransaction: ?(<system>(Value, ?Value) -> Nat);
+  tt: TTLib.TimerTool;
+  canSendFee: ?((FeeDetail) -> Bool); 
+  advanced: ?{
+    icrc85 : ?{
+      kill_switch: ?Bool;
+      handler: ?(([(Text, [(Text, Value)])]) -> ());
+      period: ?Nat;
+      asset: ?Text;
+      platform: ?Text;
+      tree: ?[Text];
+      collector: ?Principal;
+    };
+  };
+};
+
+
+private func getICRC79Environment<system>() : ICRC79.Environment {
+  return {
+    addLedgerTransaction = null; //todo: set up icrc3;
+    canSendFee = null;
+    tt = tt<system>();
+    advanced = null;
+  };
+};
+
+private func icrc79<system>() : ICRC79.ICRC79 {
+  switch(_icrc79) {
+    case(?icrc79) return icrc79;
+    case(null) {
+      let icrc79 = ICRC79.ICRC79(?icrc79MigrationState, Principal.fromActor(this), getICRC79Environment<system>() );
+      _icrc79 := ?icrc79;
+      return icrc79;
+    };
+  };  
+};
+
 ```
 
 ## Usage
@@ -81,7 +119,7 @@ Subscrption requests are an array of possible subscription items. Items should o
       #firstPayment: Nat; //Optional: set a time for the first regular payment.  If not set, the first payment will be immediate
       #nowPayment: Nat; //Optional. set a token amount to process immediately. requires firstPayment to be set and in the future
       #memo: Blob; //Optional: memo to include with the subscription
-      #create_at_time: Nat; //Optional: timestamp for deduplication
+      #createdAtTime: Nat; //Optional: timestamp for deduplication
       #subaccount: Blob; //Optional: subaccount to use for the subscription
       #broker:Principal; //Optional: broker to use for the subscription
   };
@@ -284,6 +322,10 @@ To integrate these functionalities into your web application, implement the DFIN
 
 By incorporating these defined processes, you'll efficiently manage subscriptions and payments on the Internet Computer, leveraging the robust features of ICRC-79. For further granularity and to understand all available parameters and their configurations, refer to the ICRC-79 standard documentation within the `ICRC-79.md` file.
 
+### Notifying your app
+
+Future implementations of this library will emit ICRC-72 events that your app will be able to listen for to respond to new subscriptions, payments, cancellations, etc.  Until this functionality has been released, you will need to pull information into your app by querying the `icrc79_get_service_subscriptions` and `icrc79_get_service_payments` end points, or by observing the ICRC-3 log produced by an ICRC-79 canister.
+
 ### Logs and Audit
 
 The ICRC79-mo component takes an add_record parameter in it's environment. Wiring this up to the add_record function in a [ICRC3-mo](https://github.com/PanIndustrial-Org/icrc3.mo) class will enable a transaction log. Alternatively the developer can create a custom implementation.
@@ -310,6 +352,21 @@ The current implementation splits a subscription into two payments. 98.5% is del
 
 Fee payments can be overridden by implementing the canSendFee parameter on the environment parameter. This may be useful for manually tacking and excluding potential regulatory restrictions or censoring known-bad-actors.
 
+```
+
+  public type FeeDetail = {
+    service: Principal;
+    targetAccount: ?Account;
+    subscribingAccount: Account;
+    feeAccount: Account;
+    token: (Principal,?Blob);
+    feeAmount: Nat;
+  };
+
+  canSendFee: ?((FeeDetail) -> Bool);
+
+  ```   
+
 Future implementations will implement the ICRC-79 concept of a broker. For subscriptions containing a broker, an additional 1% will be removed from the main subscription amount and delivered to the broker account.
 
 ## Future Features
@@ -318,7 +375,6 @@ Future implementations will implement the ICRC-79 concept of a broker. For subsc
 - Helper class for rate limiting to avoid ddos attacks
 - ICRC-80 Compatibility
 - ICRC-72 Compatibility
-- ICRC-17 Compatibility
 - Strategy for regulatory compliance
 - Exchange rate functionality
 - Safely retrieving token information

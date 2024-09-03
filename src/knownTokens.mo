@@ -3,8 +3,6 @@ import MigrationTypes = "migrations/types";
 
 module {
   public func knownTokens() : [((Principal, ?Blob), MigrationTypes.Current.TokenInfo)] = [
-
-  
   ((Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"), null), {tokenCanister = Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai") ;
       tokenSymbol = "ICP";
       tokenDecimals = 8 : Nat8;

@@ -361,7 +361,7 @@ export type SubscriptionRequestItem = { 'serviceCanister' : Principal } |
   { 'nowPayment' : bigint } |
   { 'baseRateAsset' : [Asset__1, CheckRate__1] } |
   { 'ICRC17Endpoint' : Principal } |
-  { 'create_at_time' : bigint } |
+  { 'createAtTime' : bigint } |
   { 'amountPerInterval' : bigint } |
   { 'targetAccount' : Account__1 } |
   { 'tokenCanister' : Principal } |

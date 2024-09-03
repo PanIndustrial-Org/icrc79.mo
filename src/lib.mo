@@ -18,7 +18,7 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Star "mo:star/star";
 import Sha256 "mo:sha2/Sha256";
 import Conversion "mo:candy/conversion";
-import ovs_fixed "mo:ovs-fixed";
+import ovsFixed "mo:ovs-fixed";
 import RepIndy "mo:rep-indy-hash";
 import Serializer "serializer";
 
@@ -64,6 +64,7 @@ module {
   public type NewPaymentListener =              MigrationTypes.Current.NewPaymentListener;
   public type ActivateSubscriptionListener =    MigrationTypes.Current.ActivateSubscriptionListener;
   public type PauseSubscriptionListener =       MigrationTypes.Current.PauseSubscriptionListener;
+  public type FeeDetail =                      MigrationTypes.Current.FeeDetail;
   
 
 
@@ -127,11 +128,11 @@ module {
 
     var transactionTicker = 0; //used to make sure that transactions are unique
 
-    public func get_state() : CurrentState {
+    public func getState() : CurrentState {
       return state;
     };
 
-    public func get_environment() : Environment {
+    public func getEnvironment() : Environment {
       return environment;
     };
 
@@ -160,7 +161,7 @@ module {
       var firstPayment : ?Nat = null;
       var nowPayment : ?Nat = null;
       var memo : ?Blob = null;
-      var create_at_time : ?Nat = null;
+      var createdAtTime : ?Nat = null;
       var subaccount : ?Blob = null;
       var checkRate : ?CheckRate = null;
       var brokerId : ?Principal = null;
@@ -222,8 +223,8 @@ module {
             };
             memo := ?val;
           };
-          case (#create_at_time(val)) {
-            create_at_time := ?val;
+          case (#createdAtTime(val)) {
+            createdAtTime := ?val;
           };
           case (#subaccount(val)) {
             if(val.size() > 32){
@@ -267,7 +268,7 @@ module {
         firstPayment = firstPayment;
         nowPayment = nowPayment;
         memo = memo;
-        create_at_time = create_at_time;
+        createdAtTime = createdAtTime;
         checkRate = checkRate;
         account = {
           owner = caller;
@@ -419,7 +420,7 @@ module {
     };
 
     public func addRecord<system>(op: Value, top: ?Value) : Nat{
-      switch(environment.add_ledger_transaction){
+      switch(environment.addLedgerTransaction){
         case(null) 0; //todo : should we throw an error?
         case(?val) val<system>(op, top);
       };
@@ -1351,7 +1352,14 @@ module {
           var bSendFee = switch(environment.canSendFee){
             case(null) true;
             case(?val) {
-              val(subscription.account, state.publicGoodsAccount, subscription.tokenCanister, fee);
+              val({
+                service = subscription.serviceCanister;
+                targetAccount = subscription.targetAccount;
+                subscribingAccount = subscription.account;
+                feeAccount = state.publicGoodsAccount;
+                token = (subscription.tokenCanister, subscription.tokenPointer);
+                feeAmount = fee}
+                );
             };
           };
 
@@ -1396,7 +1404,7 @@ module {
           //log the item to the ledger
           let (op,top) = Serializer.serializePaymentCreate(newPayment, natnow());
 
-          let trx = switch(environment.add_ledger_transaction){
+          let trx = switch(environment.addLedgerTransaction){
             case(null) 0; //todo : should we throw an error?
             case(?val) val<system>(op, ?top);
           };
@@ -2088,7 +2096,7 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
 
     private func cycleShare<system>(id: TT.ActionId, Action: TT.Action) : async* Star.Star<TT.ActionId, TT.Error> {
       try{
-        await* ovs_fixed.shareCycles<system>({
+        await* ovsFixed.shareCycles<system>({
           environment = do?{environment.advanced!.icrc85!};
           namespace = "com.panindustrial.libraries.icrc79";
           actions = 100;

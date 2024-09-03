@@ -55,13 +55,12 @@ module {
       #endDate: Nat; // Optional: Timestamp in nanoseconds to end the subscription
       #targetAccount: Account; //Optional: Account to pay the subscription to, defaults to the service canister default account if not provided
       #productId: Nat; //Optional: Vendor specified product id
-      #ICRC17Endpoint: Principal; // Optional KYC validation endpoint
       #firstPayment: Nat; //Optional: set a time for the first regular payment.  If not set, the first payment will be immediate
       #nowPayment: Nat; //Optional. set a token amount to process immediately. requires firstPayment to be set and in the future
       #memo: Blob; //Optional: memo to include with the subscription
-      #create_at_time: Nat; //Optional: timestamp for deduplication
+      #createdAtTime: Nat; //Optional: timestamp for deduplication
       #subaccount: Blob; //Optional: subaccount to use for the subscription
-      #broker:Principal; //Optional: broker to use for the subscription
+      #broker: Principal; //Optional: broker to use for the subscription
   };
 
   public type SubscriptionRequestItemKeys = {
@@ -74,11 +73,10 @@ module {
       #endDate; // Optional: Timestamp in nanoseconds to end the subscription
       #targetAccount; //Optional: Account to pay the subscription to, defaults to the service canister default account if not provided
       #productId; //Optional: Vendor specified product id
-      #ICRC17Endpoint; // Optional KYC validation endpoint
       #firstPayment; //Optional: set a time for the first regular payment.  If not set, the first payment will be immediate
       #nowPayment; //Optional. set a token amount to process immediately. requires firstPayment to be set and in the future
       #memo; //Optional: memo to include with the subscription
-      #create_at_time; //Optional: timestamp for deduplication
+      #createdAtTime; //Optional: timestamp for deduplication
       #subaccount; //Optional: subaccount to use for the subscription
       #broker;
   };
@@ -107,7 +105,6 @@ module {
     #TokenNotFound;
     #SubscriptionNotFound;
     #InsufficientAllowance : Nat;
-    #ICRC17Error: KYCResult;
     #InvalidInterval;
     #InvalidDate;
     #Other: {
@@ -160,47 +157,6 @@ module {
     quote_asset_num_queried_sources : Nat64;
   };
 
-  type ICTokenSpec = 
-  {
-   canister: Principal;
-   decimals: Nat;
-   fee: ?Nat;
-   id: ?Nat; //used for multi-token canisters
-   standard: {
-               #DIP20;
-               #EXTFungible;
-               #ICRC1;
-               #Ledger;
-               #Other: ICRC16; //for future use
-             };
-   symbol: Text;
-  };
-
-  type TokenSpec = 
-  {
-   #Extensible: ICRC16; //for future use cases
-   #IC: ICTokenSpec;
- };
-
-  public type KYCResult = 
-  {
-    aml: {
-            #Fail;
-            #NA;
-            #Pass;
-          };
-    amount: ?Nat;
-    kyc: {
-            #Fail;
-            #NA;
-            #Pass;
-          };
-    message: ?Text;
-    extensible: ?ICRC16;
-    token: ?TokenSpec;
-    timeout: ?Nat;
-  };
-
   public type Subscription = {
       subscriptionId: Nat;
       tokenCanister: Principal;
@@ -213,7 +169,6 @@ module {
       brokerId: ?Principal;
       endDate: ?Nat; // Timestamp in nanoseconds to end the subscription
       targetAccount: ?Account;
-      ICRC17Endpoint: ?Principal; // Optional KYC validation endpoint
       account: Account;
       status: SubStatus;
   };

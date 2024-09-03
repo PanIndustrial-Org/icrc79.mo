@@ -388,7 +388,7 @@ export const idlFactory = ({ IDL }) => {
     'nowPayment' : IDL.Nat,
     'baseRateAsset' : IDL.Tuple(Asset__1, CheckRate__1),
     'ICRC17Endpoint' : IDL.Principal,
-    'create_at_time' : IDL.Nat,
+    'createAtTime' : IDL.Nat,
     'amountPerInterval' : IDL.Nat,
     'targetAccount' : Account__1,
     'tokenCanister' : IDL.Principal,
