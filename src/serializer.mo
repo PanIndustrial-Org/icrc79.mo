@@ -150,7 +150,7 @@ module {
       items.add( ("canceller",#Blob(Principal.toBlob(caller))));
       items.add( ("cancelReason",#Text(reason)));
       items.add( ("interval",#Text(intervalToText(item.interval))));
-      items.add( ("cancledAt",#Nat(time)));
+      items.add( ("canceledAt",#Nat(time)));
 
       return (#Map(Buffer.toArray(items)), #Map(Buffer.toArray(top)));
     };
@@ -184,7 +184,7 @@ module {
       items.add( ("canceller",#Blob(Principal.toBlob(caller))));
       items.add( ("cancelReason",#Text(reason)));
       items.add( ("interval",#Text(intervalToText(item.interval))));
-      items.add( ("cancledAt",#Nat(time)));
+      items.add( ("canceledAt",#Nat(time)));
 
       return (#Map(Buffer.toArray(items)), #Map(Buffer.toArray(top)));
     };

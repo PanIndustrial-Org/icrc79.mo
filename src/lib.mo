@@ -524,7 +524,7 @@ module {
             debug logDebug(debug_channel.subscribe,"Subs: found" # debug_show(found));
             //fail the whole batch
             if(found + state.minDrift + state.trxWindow > now){
-              debug logDebug(debug_channel.subscribe,"Subs: found too old" # debug_show(found));
+              debug logDebug(debug_channel.subscribe,"Subs: found too recent " # debug_show(found));
               return([?#Err(#Duplicate)]);
             };
           };
@@ -537,10 +537,32 @@ module {
       label proc for(parsedRequest in parsedItems.vals()){
 
       //validate the subscription
-      //if interval make sure it isn't less than 1 hour.
+     
+
+      //check
+        let existingSubscriptions = do? {
+          let subAccountMap = Map.get(state.userSubscriptionIndex, Map.phash, parsedRequest.account.owner);
+          let subBlob = subaccountToBlob(parsedRequest.account.subaccount);
+          let serviceMap = Map.get(subAccountMap!, Map.bhash, subBlob);
+          let productSubMap = Map.get(serviceMap!, Map.phash, parsedRequest.serviceCanister);
+          let productMap = Map.get(productSubMap!, nullNHash, parsedRequest.productId);
+          productMap!;
+        };
+
+        switch(existingSubscriptions){
+          case(null) {};
+          case(?val){
+            label search for(thisSub in Set.keys(val)){
+              let ?thisSubDetail = Map.get(state.subscriptions, Map.nhash, thisSub) else continue search;
+              if(thisSubDetail.status == #Active){
+                results.add(?#Err(#FoundActiveSubscription(thisSub)));
+                continue proc;
+              };
+            };
+          };
+        };
 
         // Get token info
-       
         debug logDebug(debug_channel.subscribe,"Subs: parsedRequest" # debug_show(parsedRequest));
 
         if(parsedRequest.account.owner != caller){
@@ -548,6 +570,7 @@ module {
           continue proc;
         };
 
+         //if interval make sure it isn't less than 1 hour.
         switch(parsedRequest.interval){
           case(#Interval(val)){
             if(val < 3_600_000_000_000){
@@ -852,7 +875,7 @@ module {
       };
     };
 
-    private func findOrCreateUserProductMap(subscription: SubscriptionState) : ProductSubscriptionMap {
+    private func findOrCreateUserProductMap(subscription: SubscriptionState) : Set.Set<Nat> {
 
       debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap" # debug_show(subscription));
       
@@ -879,26 +902,47 @@ module {
         case(?val) val;
       };
 
-      let productMap = switch(Map.get(serviceMap, Map.phash, subscription.serviceCanister)){
+      let productSubMap = switch(Map.get(serviceMap, Map.phash, subscription.serviceCanister)){
         case(null) {
           debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap productMap null" # debug_show(subscription.serviceCanister));
-          let productMap = Map.new<?Nat, Nat>();
-          ignore Map.put(serviceMap, Map.phash, subscription.serviceCanister, productMap);
+          let productSubMap = Map.new<?Nat, Set.Set<Nat>>();
+          ignore Map.put(serviceMap, Map.phash, subscription.serviceCanister, productSubMap);
+          productSubMap;
+        };
+        case(?val) val;
+      };
+
+      let productMap = switch(Map.get(productSubMap, nullNHash, subscription.productId)){
+        case(null) {
+          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap productMap null" # debug_show(subscription.productId));
+          let productMap = Set.new<Nat>();
+          ignore Map.put(productSubMap, nullNHash, subscription.productId, productMap);
           productMap;
         };
         case(?val) val;
       };
+
       productMap;
     };
 
-    private func findOrCreateServiceProductMap(subscription: SubscriptionState) : ProductSubscriptionMap {
+    private func findOrCreateServiceProductMap(subscription: SubscriptionState) : Set.Set<Nat> {
 
       debug logDebug(debug_channel.subscribe, "Subs: findOrCreateServiceProductMap" # debug_show(subscription));
-      let productMap = switch(Map.get(state.serviceSubscriptionIndex, Map.phash, subscription.serviceCanister)){
+      let productSubMap = switch(Map.get(state.serviceSubscriptionIndex, Map.phash, subscription.serviceCanister)){
         case(null) {
           debug logDebug(debug_channel.subscribe, "Subs: findOrCreateServiceProductMap productMap null" # debug_show(subscription.serviceCanister));
-          let productMap = Map.new<?Nat, Nat>();
-          ignore Map.put(state.serviceSubscriptionIndex, Map.phash, subscription.serviceCanister, productMap);
+          let productSubMap = Map.new<?Nat, Set.Set<Nat>>();
+          ignore Map.put(state.serviceSubscriptionIndex, Map.phash, subscription.serviceCanister, productSubMap);
+          productSubMap;
+        };
+        case(?val) val;
+      };
+
+      let productMap = switch(Map.get(productSubMap, nullNHash, subscription.productId)){
+        case(null) {
+          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateServiceProductMap productMap null" # debug_show(subscription.productId));
+          let productMap = Set.new<Nat>();
+          ignore Map.put(productSubMap, nullNHash, subscription.productId, productMap);
           productMap;
         };
         case(?val) val;
@@ -913,9 +957,9 @@ module {
       let userProductMap = findOrCreateUserProductMap(subscription);
       let serviceProductMap = findOrCreateServiceProductMap(subscription);
 
-      ignore Map.put(userProductMap, nullNHash, subscription.productId, subscription.subscriptionId);
+      ignore Set.put(userProductMap, Set.nhash, subscription.subscriptionId);
 
-      ignore Map.put(serviceProductMap, nullNHash, subscription.productId, subscription.subscriptionId);
+      ignore Set.put(serviceProductMap, Set.nhash, subscription.subscriptionId);
 
       // Add the subscription to the globalmap
       ignore Map.put(state.subscriptions, Map.nhash, subscription.subscriptionId, subscription);
@@ -1192,7 +1236,7 @@ module {
         let exchangeRateActor : Service.ExchangeRateActor = actor(Principal.toText(state.exchangeRateCanister));
 
         let rate = try {
-          ExperimentalCycles.add(1_000_000_000);
+          ExperimentalCycles.add<system>(1_000_000_000);
           let rate = await exchangeRateActor.get_exchange_rate({
             timestamp = ?nat64now();
             quote_asset = val;
@@ -1228,8 +1272,13 @@ module {
         if(val.1 >= 10000) { //over 10000 basis points
           return #err(#trappable({error_code = 4; message = "Fee too high.";}));
         };
-        let feeAmount = (amountBeforeFee * val.1) / 10000;
-        let totalAmount = amountBeforeFee - feeAmount;
+        var feeAmount = (amountBeforeFee * val.1) / 10000;
+        let totalAmount = if(feeAmount > amountBeforeFee){
+          feeAmount := 0;
+          amountBeforeFee;
+        } else {
+          amountBeforeFee - feeAmount;
+        };
         (totalAmount, feeAmount);
       };
       case(null){
@@ -1553,54 +1602,57 @@ module {
       label services for(thisService in Map.entries(subaccountRecord.1)){
         debug logDebug(debug_channel.announce, "Subs: get_user_payments service" # debug_show(thisService));
         if(passesServiceFilter(filter, thisService.0) == false) continue services;
-        label products for(thisProduct in Map.entries(thisService.1)){
-          debug logDebug(debug_channel.announce, "Subs: get_user_payments product" # debug_show(thisProduct));
-          if(passesProductFilter(filter, thisProduct.0) == false) continue products;
-
-          if(passesSubscriptionFilter(filter, thisProduct.1) == false) continue products;
-          
-          let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct.1) else {
-              debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(thisProduct.1));
-              continue products;
-          };
-
-          debug logDebug(debug_channel.announce, "Subs: get_user_payments subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
-        
-          label payments for(payment in Vector.vals(subscription.history)){
-            debug logDebug(debug_channel.announce, "Subs: get_user_payments payment" # debug_show(payment));
-            let ?paymentRecord = Map.get(state.payments, Map.nhash, payment) else {
-              debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(payment));
-              continue products;
-            };
-
-            if(bFound == false){
-              if(paymentRecord.paymentId == target){
-                bFound := true;
-              } else {
-                continue payments;
-              };
-            };
+        label productSubs for(thisProductSub in Map.entries(thisService.1)){
+          if(passesProductFilter(filter, thisProductSub.0) == false) continue productSubs;
+          label products for(thisProduct in Set.keys(thisProductSub.1)){
+            debug logDebug(debug_channel.announce, "Subs: get_user_payments product" # debug_show(thisProduct));
             
-            results.add({
-              paymentId = paymentRecord.paymentId;
-              fee = paymentRecord.fee;
-              amount = paymentRecord.amount;
-              date = paymentRecord.date;
-              brokerFee = paymentRecord.brokerFee;
-              brokerTransactionId = paymentRecord.brokerTransactionId;
-              rate = paymentRecord.rate;
-              subscriptionId = paymentRecord.subscriptionId;
-              result = paymentRecord.result;
-              transactionId = paymentRecord.transactionId;
-              ledgerTransactionId = paymentRecord.ledgerTransactionId;
-              feeTransactionId = paymentRecord.feeTransactionId;
-            });
 
-            switch(take){
-              case(null) {};
-              case(?val){
-                if(results.size() >= val){
-                  return Buffer.toArray(results);
+            if(passesSubscriptionFilter(filter, thisProduct) == false) continue products;
+            
+            let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
+                debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(thisProduct));
+                continue products;
+            };
+
+            debug logDebug(debug_channel.announce, "Subs: get_user_payments subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
+          
+            label payments for(payment in Vector.vals(subscription.history)){
+              debug logDebug(debug_channel.announce, "Subs: get_user_payments payment" # debug_show(payment));
+              let ?paymentRecord = Map.get(state.payments, Map.nhash, payment) else {
+                debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(payment));
+                continue products;
+              };
+
+              if(bFound == false){
+                if(paymentRecord.paymentId == target){
+                  bFound := true;
+                } else {
+                  continue payments;
+                };
+              };
+              
+              results.add({
+                paymentId = paymentRecord.paymentId;
+                fee = paymentRecord.fee;
+                amount = paymentRecord.amount;
+                date = paymentRecord.date;
+                brokerFee = paymentRecord.brokerFee;
+                brokerTransactionId = paymentRecord.brokerTransactionId;
+                rate = paymentRecord.rate;
+                subscriptionId = paymentRecord.subscriptionId;
+                result = paymentRecord.result;
+                transactionId = paymentRecord.transactionId;
+                ledgerTransactionId = paymentRecord.ledgerTransactionId;
+                feeTransactionId = paymentRecord.feeTransactionId;
+              });
+
+              switch(take){
+                case(null) {};
+                case(?val){
+                  if(results.size() >= val){
+                    return Buffer.toArray(results);
+                  };
                 };
               };
             };
@@ -1677,95 +1729,98 @@ module {
     let results = Buffer.Buffer<Service.PaymentRecord>(1);
 
     
-    label products for(thisProduct in Map.entries(subs)){
-      debug logDebug(debug_channel.announce, "Subs: get_sevice_payments product" # debug_show(thisProduct));
-      if(passesServiceProductFilter(filter, thisProduct.0) == false) continue products;
-      if(passesServiceSubscriptionFilter(filter, thisProduct.1) == false) continue products;
-      
-      let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct.1) else {
-          debug logDebug(debug_channel.announce, "Subs: get_sevice_payments payment not found" # debug_show(thisProduct.1));
-          continue products;
-      };
-      debug logDebug(debug_channel.announce, "Subs: get_sevice_payments subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
-
-      switch(filter){
-        case(null) {};
-        case(?val){
-          switch(val.status){
-            case(null) {};
-            case(?#Active){
-              switch(subscription.status){
-                case(#Active){};
-                case(_){
-                  continue products;
-                };
-              };
-            };
-            case(?#Canceled){
-              switch(subscription.status){
-                case(#Canceled(_)){};
-                case(_){
-                  continue products;
-                };
-              };
-            };
-            case(?#Paused){
-              switch(subscription.status){
-                case(#Paused(_)){};
-                case(_){
-                  continue products;
-                };
-              };
-            };
-            case(?#WillCancel){
-              switch(subscription.status){
-                case(#WillCancel(_)){};
-                case(_){
-                  continue products;
-                };
-              };
-            };
-          };
-        };
-      };
-
-      for(thisPayment in Vector.vals(subscription.history)){
-
-        if(bFound == false){
-          if(thisPayment == target){
-            bFound := true;
-          } else {
-            continue products;
-          };
-        };
-
+    label productSubs for(thisProductSub in Map.entries(subs)){
+      if(passesServiceProductFilter(filter, thisProductSub.0) == false) continue productSubs;
+      label products for(thisProduct in Set.keys(thisProductSub.1)){
+        debug logDebug(debug_channel.announce, "Subs: get_sevice_payments product" # debug_show(thisProduct));
         
-
-        let ?paymentRecord = Map.get(state.payments, Map.nhash, thisPayment) else {
-          debug logDebug(debug_channel.announce, "Subs: get_sevice_payments payment not found" # debug_show(thisProduct));
-          continue products;
+        if(passesServiceSubscriptionFilter(filter, thisProduct) == false) continue products;
+        
+        let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
+            debug logDebug(debug_channel.announce, "Subs: get_sevice_payments payment not found" # debug_show(thisProduct));
+            continue products;
         };
+        debug logDebug(debug_channel.announce, "Subs: get_sevice_payments subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
 
-        results.add({
-          paymentId = paymentRecord.paymentId;
-          fee = paymentRecord.fee;
-          amount = paymentRecord.amount;
-          date = paymentRecord.date;
-          brokerFee = paymentRecord.brokerFee;
-          brokerTransactionId = paymentRecord.brokerTransactionId;
-          rate = paymentRecord.rate;
-          subscriptionId = paymentRecord.subscriptionId;
-          result = paymentRecord.result;
-          transactionId = paymentRecord.transactionId;
-          ledgerTransactionId = paymentRecord.ledgerTransactionId;
-          feeTransactionId = paymentRecord.feeTransactionId;
-        });
-
-        switch(take){
+        switch(filter){
           case(null) {};
           case(?val){
-            if(results.size() >= val){
-              return Buffer.toArray(results);
+            switch(val.status){
+              case(null) {};
+              case(?#Active){
+                switch(subscription.status){
+                  case(#Active){};
+                  case(_){
+                    continue products;
+                  };
+                };
+              };
+              case(?#Canceled){
+                switch(subscription.status){
+                  case(#Canceled(_)){};
+                  case(_){
+                    continue products;
+                  };
+                };
+              };
+              case(?#Paused){
+                switch(subscription.status){
+                  case(#Paused(_)){};
+                  case(_){
+                    continue products;
+                  };
+                };
+              };
+              case(?#WillCancel){
+                switch(subscription.status){
+                  case(#WillCancel(_)){};
+                  case(_){
+                    continue products;
+                  };
+                };
+              };
+            };
+          };
+        };
+
+        for(thisPayment in Vector.vals(subscription.history)){
+
+          if(bFound == false){
+            if(thisPayment == target){
+              bFound := true;
+            } else {
+              continue products;
+            };
+          };
+
+          
+
+          let ?paymentRecord = Map.get(state.payments, Map.nhash, thisPayment) else {
+            debug logDebug(debug_channel.announce, "Subs: get_sevice_payments payment not found" # debug_show(thisProduct));
+            continue products;
+          };
+
+          results.add({
+            paymentId = paymentRecord.paymentId;
+            fee = paymentRecord.fee;
+            amount = paymentRecord.amount;
+            date = paymentRecord.date;
+            brokerFee = paymentRecord.brokerFee;
+            brokerTransactionId = paymentRecord.brokerTransactionId;
+            rate = paymentRecord.rate;
+            subscriptionId = paymentRecord.subscriptionId;
+            result = paymentRecord.result;
+            transactionId = paymentRecord.transactionId;
+            ledgerTransactionId = paymentRecord.ledgerTransactionId;
+            feeTransactionId = paymentRecord.feeTransactionId;
+          });
+
+          switch(take){
+            case(null) {};
+            case(?val){
+              if(results.size() >= val){
+                return Buffer.toArray(results);
+              };
             };
           };
         };
@@ -1801,16 +1856,125 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
       label services for(thisService in Map.entries(subaccountRecord.1)){
         debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions service" # debug_show(thisService));
         if(passesServiceFilter(filter, thisService.0) == false) continue services;
-        label products for(thisProduct in Map.entries(thisService.1)){
-          debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions product" # debug_show(thisProduct));
-          if(passesProductFilter(filter, thisProduct.0) == false) continue products;
+        label productSubs for(thisProductSubs in Map.entries(thisService.1)){
+          if(passesProductFilter(filter, thisProductSubs.0) == false) continue productSubs;
+          label products for(thisProduct in Set.keys(thisProductSubs.1)){
+            debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions product" # debug_show(thisProduct));
+            
 
-          if(passesSubscriptionFilter(filter, thisProduct.1) == false) continue products;
+            if(passesSubscriptionFilter(filter, thisProduct) == false) continue products;
+            
+            let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
+                debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions payment not found" # debug_show(thisProduct));
+                continue products;
+            };
+
+            if(bFound == false){
+              if(subscription.subscriptionId == target){
+                bFound := true;
+              } else {
+                continue products;
+              };
+            };
+
+            switch(filter){
+              case(null) {};
+              case(?val){
+                switch(val.status){
+                  case(null) {};
+                  case(?#Active){
+                    switch(subscription.status){
+                      case(#Active){};
+                      case(_){
+                        continue products;
+                      };
+                    };
+                  };
+                  case(?#Canceled){
+                    switch(subscription.status){
+                      case(#Canceled(_)){};
+                      case(_){
+                        continue products;
+                      };
+                    };
+                  };
+                  case(?#Paused){
+                    switch(subscription.status){
+                      case(#Paused(_)){};
+                      case(_){
+                        continue products;
+                      };
+                    };
+                  };
+                  case(?#WillCancel){
+                    switch(subscription.status){
+                      case(#WillCancel(_)){};
+                      case(_){
+                        continue products;
+                      };
+                    };
+                  };
+                };
+              };
+            };
+            
+            results.add(shareSubscriptionState(subscription));
+
+            switch(take){
+              case(null) {};
+              case(?val){
+                if(results.size() >= val){
+                  return Buffer.toArray(results);
+                };
+              };
+            };
+          };
           
-          let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct.1) else {
-              debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions payment not found" # debug_show(thisProduct.1));
+        };
+      };
+    };
+
+    Buffer.toArray(results);
+  };
+
+  public func get_sevice_subscriptions(caller: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : [Service.Subscription] {
+      // Implementation of get user payments logic
+      debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions" # debug_show((caller, filter, prev, take)));
+
+      var bFound = switch(prev){
+        case(null) true;
+        case(?val) false;
+      };
+
+      let target = switch(prev){
+        case(null) 0;
+        case(?val) val;
+      };
+
+      let ?subs = Map.get(state.serviceSubscriptionIndex, Map.phash, caller) else return [];
+
+      debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions index " # debug_show(subs));
+
+      let results = Buffer.Buffer<Service.Subscription>(1);
+
+      
+      label productSubs for(thisProductSubs in Map.entries(subs)){
+        if(passesServiceProductFilter(filter, thisProductSubs.0) == false) continue productSubs;
+        label products for(thisProduct in Set.keys(thisProductSubs.1)){
+          debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions product" # debug_show(thisProduct));
+          
+
+          
+          if(passesServiceSubscriptionFilter(filter, thisProduct) == false) continue products;
+          
+          let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
+              debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions payment not found" # debug_show(thisProduct));
               continue products;
           };
+
+
+
+          debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
 
           if(bFound == false){
             if(subscription.subscriptionId == target){
@@ -1860,7 +2024,7 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
               };
             };
           };
-          
+
           results.add(shareSubscriptionState(subscription));
 
           switch(take){
@@ -1869,109 +2033,6 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
               if(results.size() >= val){
                 return Buffer.toArray(results);
               };
-            };
-          };
-          
-        };
-      };
-    };
-
-    Buffer.toArray(results);
-  };
-
-  public func get_sevice_subscriptions(caller: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : [Service.Subscription] {
-      // Implementation of get user payments logic
-      debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions" # debug_show((caller, filter, prev, take)));
-
-      var bFound = switch(prev){
-        case(null) true;
-        case(?val) false;
-      };
-
-      let target = switch(prev){
-        case(null) 0;
-        case(?val) val;
-      };
-
-      let ?subs = Map.get(state.serviceSubscriptionIndex, Map.phash, caller) else return [];
-
-      debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions index " # debug_show(subs));
-
-      let results = Buffer.Buffer<Service.Subscription>(1);
-
-      
-      label products for(thisProduct in Map.entries(subs)){
-        debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions product" # debug_show(thisProduct));
-        if(passesServiceProductFilter(filter, thisProduct.0) == false) continue products;
-
-        
-        if(passesServiceSubscriptionFilter(filter, thisProduct.1) == false) continue products;
-        
-        let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct.1) else {
-            debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions payment not found" # debug_show(thisProduct.1));
-            continue products;
-        };
-
-
-
-        debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
-
-        if(bFound == false){
-          if(subscription.subscriptionId == target){
-            bFound := true;
-          } else {
-            continue products;
-          };
-        };
-
-        switch(filter){
-          case(null) {};
-          case(?val){
-            switch(val.status){
-              case(null) {};
-              case(?#Active){
-                switch(subscription.status){
-                  case(#Active){};
-                  case(_){
-                    continue products;
-                  };
-                };
-              };
-              case(?#Canceled){
-                switch(subscription.status){
-                  case(#Canceled(_)){};
-                  case(_){
-                    continue products;
-                  };
-                };
-              };
-              case(?#Paused){
-                switch(subscription.status){
-                  case(#Paused(_)){};
-                  case(_){
-                    continue products;
-                  };
-                };
-              };
-              case(?#WillCancel){
-                switch(subscription.status){
-                  case(#WillCancel(_)){};
-                  case(_){
-                    continue products;
-                  };
-                };
-              };
-            };
-          };
-        };
-
-        results.add(shareSubscriptionState(subscription));
-
-        switch(take){
-          case(null) {};
-          case(?val){
-            if(results.size() >= val){
-              return Buffer.toArray(results);
             };
           };
         };
@@ -2078,7 +2139,7 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
       registerListener<NewSubscriptionListener>(namespace, remote_func, newSubscriptionListeners);
     };
 
-    public func registerCancledSubscriptionListener(namespace: Text, remote_func : CanceledSubscriptionListener){
+    public func registerCanceledSubscriptionListener(namespace: Text, remote_func : CanceledSubscriptionListener){
       registerListener<CanceledSubscriptionListener>(namespace, remote_func, canceledSubscriptionListeners);
     };
 

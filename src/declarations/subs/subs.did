@@ -18,12 +18,17 @@ type UserSubscriptionsFilter =
    subaccounts: opt vec opt blob;
    subscriptions: opt vec nat;
  };
-type TokenSpec = 
- variant {
-   Extensible: ICRC16;
-   IC: ICTokenSpec;
- };
 type TokenPointer = blob;
+type TokenInfo__1 = 
+ record {
+   standards: vec text;
+   tokenCanister: principal;
+   tokenDecimals: nat8;
+   tokenFee: opt nat;
+   tokenPointer: opt nat;
+   tokenSymbol: text;
+   tokenTotalSupply: nat;
+ };
 type TokenInfo = 
  record {
    standards: vec text;
@@ -70,14 +75,13 @@ type SubscriptionResponse =
  };
 type SubscriptionRequestItem = 
  variant {
-   ICRC17Endpoint: principal;
    amountPerInterval: nat;
    baseRateAsset: record {
                     Asset__1;
                     CheckRate__1;
                   };
    broker: principal;
-   createAtTime: nat;
+   createdAtTime: nat;
    endDate: nat;
    firstPayment: nat;
    interval: Interval__1;
@@ -94,7 +98,7 @@ type SubscriptionRequest = vec vec SubscriptionRequestItem;
 type SubscriptionError = 
  variant {
    Duplicate;
-   ICRC17Error: KYCResult;
+   FoundActiveSubscription: nat;
    InsufficientAllowance: nat;
    InvalidDate;
    InvalidInterval;
@@ -108,7 +112,6 @@ type SubscriptionError =
  };
 type Subscription = 
  record {
-   ICRC17Endpoint: opt principal;
    account: Account__1;
    amountPerInterval: nat;
    baseRateAsset: opt Asset__1;
@@ -125,7 +128,7 @@ type Subscription =
  };
 type Subs = 
  service {
-   add_token: (principal, opt blob) -> (opt TokenInfo);
+   add_token: (principal, opt blob) -> (opt TokenInfo__1);
    hello_world: () -> (text);
    icrc79_cancel_subscription:
     (vec record {
@@ -312,24 +315,6 @@ type PauseError =
           };
    Unauthorized;
  };
-type KYCResult = 
- record {
-   aml: variant {
-          Fail;
-          NA;
-          Pass;
-        };
-   amount: opt nat;
-   extensible: opt ICRC16;
-   kyc: variant {
-          Fail;
-          NA;
-          Pass;
-        };
-   message: opt text;
-   timeout: opt nat;
-   token: opt TokenSpec;
- };
 type Interval__1 = 
  variant {
    Daily;
@@ -368,60 +353,14 @@ type InitArgs =
    nextPaymentId: opt nat;
    nextSubscriptionId: opt nat;
    publicGoodsAccount: opt Account;
+   tokenInfo: opt vec record {
+                        record {
+                          principal;
+                          opt blob;
+                        };
+                        TokenInfo;
+                      };
    trxWindow: opt nat;
- };
-type ICTokenSpec = 
- record {
-   canister: principal;
-   decimals: nat;
-   fee: opt nat;
-   id: opt nat;
-   standard: variant {
-               DIP20;
-               EXTFungible;
-               ICRC1;
-               Ledger;
-               Other: ICRC16;
-             };
-   symbol: text;
- };
-type ICRC16 = 
- variant {
-   Array: vec ICRC16;
-   Blob: blob;
-   Bool: bool;
-   Bytes: vec nat8;
-   Class: vec record {
-                immutable: bool;
-                name: text;
-                value: ICRC16;
-              };
-   Float: float64;
-   Floats: vec float64;
-   Int: int;
-   Int16: int16;
-   Int32: int32;
-   Int64: int64;
-   Int8: int8;
-   Ints: vec int;
-   Map: vec record {
-              text;
-              ICRC16;
-            };
-   Nat: nat;
-   Nat16: nat16;
-   Nat32: nat32;
-   Nat64: nat64;
-   Nat8: nat8;
-   Nats: vec nat;
-   Option: opt ICRC16;
-   Principal: principal;
-   Set: vec ICRC16;
-   Text: text;
-   ValueMap: vec record {
-                   ICRC16;
-                   ICRC16;
-                 };
  };
 type ExchangeRateMetadata = 
  record {

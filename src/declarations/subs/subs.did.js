@@ -1,5 +1,4 @@
 export const idlFactory = ({ IDL }) => {
-  const ICRC16 = IDL.Rec();
   const Value = IDL.Rec();
   const SubStatus = IDL.Variant({
     'Paused' : IDL.Tuple(IDL.Nat, IDL.Principal, IDL.Text),
@@ -51,6 +50,15 @@ export const idlFactory = ({ IDL }) => {
     'tokenCanister' : IDL.Principal,
     'tokenPointer' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
+  const TokenInfo = IDL.Record({
+    'tokenFee' : IDL.Opt(IDL.Nat),
+    'standards' : IDL.Vec(IDL.Text),
+    'tokenTotalSupply' : IDL.Nat,
+    'tokenDecimals' : IDL.Nat8,
+    'tokenSymbol' : IDL.Text,
+    'tokenCanister' : IDL.Principal,
+    'tokenPointer' : IDL.Opt(IDL.Nat),
+  });
   const InitArgs = IDL.Record({
     'maxQueries' : IDL.Opt(IDL.Nat),
     'maxUpdates' : IDL.Opt(IDL.Nat),
@@ -59,6 +67,14 @@ export const idlFactory = ({ IDL }) => {
     'feeBPS' : IDL.Opt(IDL.Nat),
     'nextSubscriptionId' : IDL.Opt(IDL.Nat),
     'existingSubscriptions' : IDL.Vec(SubscriptionStateShared),
+    'tokenInfo' : IDL.Opt(
+      IDL.Vec(
+        IDL.Tuple(
+          IDL.Tuple(IDL.Principal, IDL.Opt(IDL.Vec(IDL.Nat8))),
+          TokenInfo,
+        )
+      )
+    ),
     'nextPaymentId' : IDL.Opt(IDL.Nat),
     'nextNotificationId' : IDL.Opt(IDL.Nat),
     'maxTake' : IDL.Opt(IDL.Nat),
@@ -86,7 +102,7 @@ export const idlFactory = ({ IDL }) => {
       'lastExecutionTime' : Time,
     })
   );
-  const TokenInfo = IDL.Record({
+  const TokenInfo__1 = IDL.Record({
     'tokenFee' : IDL.Opt(IDL.Nat),
     'standards' : IDL.Vec(IDL.Text),
     'tokenTotalSupply' : IDL.Nat,
@@ -111,81 +127,14 @@ export const idlFactory = ({ IDL }) => {
     'subscriptionId' : IDL.Nat,
     'checkRate' : IDL.Opt(CheckRate__1),
   });
-  ICRC16.fill(
-    IDL.Variant({
-      'Int' : IDL.Int,
-      'Map' : IDL.Vec(IDL.Tuple(IDL.Text, ICRC16)),
-      'Nat' : IDL.Nat,
-      'Set' : IDL.Vec(ICRC16),
-      'Nat16' : IDL.Nat16,
-      'Nat32' : IDL.Nat32,
-      'Nat64' : IDL.Nat64,
-      'Blob' : IDL.Vec(IDL.Nat8),
-      'Bool' : IDL.Bool,
-      'Int8' : IDL.Int8,
-      'Ints' : IDL.Vec(IDL.Int),
-      'Nat8' : IDL.Nat8,
-      'Nats' : IDL.Vec(IDL.Nat),
-      'Text' : IDL.Text,
-      'Bytes' : IDL.Vec(IDL.Nat8),
-      'Int16' : IDL.Int16,
-      'Int32' : IDL.Int32,
-      'Int64' : IDL.Int64,
-      'Option' : IDL.Opt(ICRC16),
-      'Floats' : IDL.Vec(IDL.Float64),
-      'Float' : IDL.Float64,
-      'Principal' : IDL.Principal,
-      'Array' : IDL.Vec(ICRC16),
-      'ValueMap' : IDL.Vec(IDL.Tuple(ICRC16, ICRC16)),
-      'Class' : IDL.Vec(
-        IDL.Record({
-          'value' : ICRC16,
-          'name' : IDL.Text,
-          'immutable' : IDL.Bool,
-        })
-      ),
-    })
-  );
-  const ICTokenSpec = IDL.Record({
-    'id' : IDL.Opt(IDL.Nat),
-    'fee' : IDL.Opt(IDL.Nat),
-    'decimals' : IDL.Nat,
-    'canister' : IDL.Principal,
-    'standard' : IDL.Variant({
-      'ICRC1' : IDL.Null,
-      'EXTFungible' : IDL.Null,
-      'DIP20' : IDL.Null,
-      'Other' : ICRC16,
-      'Ledger' : IDL.Null,
-    }),
-    'symbol' : IDL.Text,
-  });
-  const TokenSpec = IDL.Variant({ 'IC' : ICTokenSpec, 'Extensible' : ICRC16 });
-  const KYCResult = IDL.Record({
-    'aml' : IDL.Variant({
-      'NA' : IDL.Null,
-      'Fail' : IDL.Null,
-      'Pass' : IDL.Null,
-    }),
-    'kyc' : IDL.Variant({
-      'NA' : IDL.Null,
-      'Fail' : IDL.Null,
-      'Pass' : IDL.Null,
-    }),
-    'token' : IDL.Opt(TokenSpec),
-    'extensible' : IDL.Opt(ICRC16),
-    'message' : IDL.Opt(IDL.Text),
-    'amount' : IDL.Opt(IDL.Nat),
-    'timeout' : IDL.Opt(IDL.Nat),
-  });
   const SubscriptionError = IDL.Variant({
     'TokenNotFound' : IDL.Null,
     'InsufficientAllowance' : IDL.Nat,
     'SubscriptionNotFound' : IDL.Null,
     'Duplicate' : IDL.Null,
+    'FoundActiveSubscription' : IDL.Nat,
     'InvalidDate' : IDL.Null,
     'Unauthorized' : IDL.Null,
-    'ICRC17Error' : KYCResult,
     'Other' : IDL.Record({ 'code' : IDL.Nat, 'message' : IDL.Text }),
     'InvalidInterval' : IDL.Null,
   });
@@ -228,7 +177,6 @@ export const idlFactory = ({ IDL }) => {
     'baseRateAsset' : IDL.Opt(Asset__1),
     'account' : Account__1,
     'brokerId' : IDL.Opt(IDL.Principal),
-    'ICRC17Endpoint' : IDL.Opt(IDL.Principal),
     'amountPerInterval' : IDL.Nat,
     'targetAccount' : IDL.Opt(Account__1),
     'tokenCanister' : IDL.Principal,
@@ -384,11 +332,10 @@ export const idlFactory = ({ IDL }) => {
     'interval' : Interval__1,
     'memo' : IDL.Vec(IDL.Nat8),
     'subaccount' : IDL.Vec(IDL.Nat8),
+    'createdAtTime' : IDL.Nat,
     'productId' : IDL.Nat,
     'nowPayment' : IDL.Nat,
     'baseRateAsset' : IDL.Tuple(Asset__1, CheckRate__1),
-    'ICRC17Endpoint' : IDL.Principal,
-    'createAtTime' : IDL.Nat,
     'amountPerInterval' : IDL.Nat,
     'targetAccount' : Account__1,
     'tokenCanister' : IDL.Principal,
@@ -406,7 +353,7 @@ export const idlFactory = ({ IDL }) => {
   const Subs = IDL.Service({
     'add_token' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Vec(IDL.Nat8))],
-        [IDL.Opt(TokenInfo)],
+        [IDL.Opt(TokenInfo__1)],
         [],
       ),
     'hello_world' : IDL.Func([], [IDL.Text], []),
@@ -540,6 +487,15 @@ export const init = ({ IDL }) => {
     'tokenCanister' : IDL.Principal,
     'tokenPointer' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
+  const TokenInfo = IDL.Record({
+    'tokenFee' : IDL.Opt(IDL.Nat),
+    'standards' : IDL.Vec(IDL.Text),
+    'tokenTotalSupply' : IDL.Nat,
+    'tokenDecimals' : IDL.Nat8,
+    'tokenSymbol' : IDL.Text,
+    'tokenCanister' : IDL.Principal,
+    'tokenPointer' : IDL.Opt(IDL.Nat),
+  });
   const InitArgs = IDL.Record({
     'maxQueries' : IDL.Opt(IDL.Nat),
     'maxUpdates' : IDL.Opt(IDL.Nat),
@@ -548,6 +504,14 @@ export const init = ({ IDL }) => {
     'feeBPS' : IDL.Opt(IDL.Nat),
     'nextSubscriptionId' : IDL.Opt(IDL.Nat),
     'existingSubscriptions' : IDL.Vec(SubscriptionStateShared),
+    'tokenInfo' : IDL.Opt(
+      IDL.Vec(
+        IDL.Tuple(
+          IDL.Tuple(IDL.Principal, IDL.Opt(IDL.Vec(IDL.Nat8))),
+          TokenInfo,
+        )
+      )
+    ),
     'nextPaymentId' : IDL.Opt(IDL.Nat),
     'nextNotificationId' : IDL.Opt(IDL.Nat),
     'maxTake' : IDL.Opt(IDL.Nat),

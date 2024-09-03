@@ -84,6 +84,7 @@ type SubscriptionError = variant {
   InsufficientAllowance : nat;
   InvalidDate;
   InvalidInterval;
+  FoundActiveSubscription : nat;
   Other: {
     code: nat;
     message: text;

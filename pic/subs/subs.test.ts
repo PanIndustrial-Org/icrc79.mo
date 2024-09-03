@@ -881,9 +881,6 @@ describe("test subs", () => {
     subs_fixture.actor.setIdentity(charlie);
     nnsledger.setIdentity(charlie);
 
-    console.log("charlie", charlie.getPrincipal().toText());
-    console.log("service provider", serviceProvider.getPrincipal().toText());
-    console.log("nns ledger", nnsLedgerCanisterId.toText());
     // Approve the subscription canister to withdraw tokens on behalf of Alice
     const approvalResult = await nnsledger.icrc2_approve({
         from_subaccount: [],
@@ -919,7 +916,7 @@ describe("test subs", () => {
     const subResult = await subs_fixture.actor.icrc79_subscribe(subscribeRequest);
     const subResult2 = await subs_fixture.actor.icrc79_subscribe(subscribeRequest);
 
-    console.log("sub result", subResult);
+    console.log("sub result 1 and 2", subResult, subResult2);
 
     expect(subResult).toMatchObject([[{ Ok: expect.any(Object) }]]);
     expect(subResult2).toMatchObject([[{ Err: expect.any(Object) }]]);
@@ -935,7 +932,7 @@ describe("test subs", () => {
     const subResult3 = await subs_fixture.actor.icrc79_subscribe(subscribeRequest);
 
 
-    expect(subResult3).toMatchObject([[{ Ok: expect.any(Object) }]]);
+    expect(subResult3).toMatchObject([[{ Err: {FoundActiveSubscription: 0n} }]]);
     
 
  

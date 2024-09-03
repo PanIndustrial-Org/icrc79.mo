@@ -83,47 +83,6 @@ export interface ExchangeRateMetadata {
   'standard_deviation' : bigint,
   'quote_asset_num_queried_sources' : bigint,
 }
-export type ICRC16 = { 'Int' : bigint } |
-  { 'Map' : Array<[string, ICRC16]> } |
-  { 'Nat' : bigint } |
-  { 'Set' : Array<ICRC16> } |
-  { 'Nat16' : number } |
-  { 'Nat32' : number } |
-  { 'Nat64' : bigint } |
-  { 'Blob' : Uint8Array | number[] } |
-  { 'Bool' : boolean } |
-  { 'Int8' : number } |
-  { 'Ints' : Array<bigint> } |
-  { 'Nat8' : number } |
-  { 'Nats' : Array<bigint> } |
-  { 'Text' : string } |
-  { 'Bytes' : Uint8Array | number[] } |
-  { 'Int16' : number } |
-  { 'Int32' : number } |
-  { 'Int64' : bigint } |
-  { 'Option' : [] | [ICRC16] } |
-  { 'Floats' : Array<number> } |
-  { 'Float' : number } |
-  { 'Principal' : Principal } |
-  { 'Array' : Array<ICRC16> } |
-  { 'ValueMap' : Array<[ICRC16, ICRC16]> } |
-  {
-    'Class' : Array<
-      { 'value' : ICRC16, 'name' : string, 'immutable' : boolean }
-    >
-  };
-export interface ICTokenSpec {
-  'id' : [] | [bigint],
-  'fee' : [] | [bigint],
-  'decimals' : bigint,
-  'canister' : Principal,
-  'standard' : { 'ICRC1' : null } |
-    { 'EXTFungible' : null } |
-    { 'DIP20' : null } |
-    { 'Other' : ICRC16 } |
-    { 'Ledger' : null },
-  'symbol' : string,
-}
 export interface InitArgs {
   'maxQueries' : [] | [bigint],
   'maxUpdates' : [] | [bigint],
@@ -132,6 +91,9 @@ export interface InitArgs {
   'feeBPS' : [] | [bigint],
   'nextSubscriptionId' : [] | [bigint],
   'existingSubscriptions' : Array<SubscriptionStateShared>,
+  'tokenInfo' : [] | [
+    Array<[[Principal, [] | [Uint8Array | number[]]], TokenInfo]>
+  ],
   'nextPaymentId' : [] | [bigint],
   'nextNotificationId' : [] | [bigint],
   'maxTake' : [] | [bigint],
@@ -157,19 +119,6 @@ export type Interval__1 = { 'Hourly' : null } |
   { 'Monthly' : null } |
   { 'Months' : bigint } |
   { 'Yearly' : null };
-export interface KYCResult {
-  'aml' : { 'NA' : null } |
-    { 'Fail' : null } |
-    { 'Pass' : null },
-  'kyc' : { 'NA' : null } |
-    { 'Fail' : null } |
-    { 'Pass' : null },
-  'token' : [] | [TokenSpec],
-  'extensible' : [] | [ICRC16],
-  'message' : [] | [string],
-  'amount' : [] | [bigint],
-  'timeout' : [] | [bigint],
-}
 export type PauseError = { 'InvalidStatus' : SubStatus__1 } |
   { 'NotFound' : null } |
   { 'Unauthorized' : null } |
@@ -273,7 +222,7 @@ export type SubStatus__1 = { 'Paused' : [bigint, Principal, string] } |
 export interface Subs {
   'add_token' : ActorMethod<
     [Principal, [] | [Uint8Array | number[]]],
-    [] | [TokenInfo]
+    [] | [TokenInfo__1]
   >,
   'hello_world' : ActorMethod<[], string>,
   'icrc79_cancel_subscription' : ActorMethod<
@@ -334,7 +283,6 @@ export interface Subscription {
   'baseRateAsset' : [] | [Asset__1],
   'account' : Account__1,
   'brokerId' : [] | [Principal],
-  'ICRC17Endpoint' : [] | [Principal],
   'amountPerInterval' : bigint,
   'targetAccount' : [] | [Account__1],
   'tokenCanister' : Principal,
@@ -344,9 +292,9 @@ export type SubscriptionError = { 'TokenNotFound' : null } |
   { 'InsufficientAllowance' : bigint } |
   { 'SubscriptionNotFound' : null } |
   { 'Duplicate' : null } |
+  { 'FoundActiveSubscription' : bigint } |
   { 'InvalidDate' : null } |
   { 'Unauthorized' : null } |
-  { 'ICRC17Error' : KYCResult } |
   { 'Other' : { 'code' : bigint, 'message' : string } } |
   { 'InvalidInterval' : null };
 export type SubscriptionRequest = Array<Array<SubscriptionRequestItem>>;
@@ -357,11 +305,10 @@ export type SubscriptionRequestItem = { 'serviceCanister' : Principal } |
   { 'interval' : Interval__1 } |
   { 'memo' : Uint8Array | number[] } |
   { 'subaccount' : Uint8Array | number[] } |
+  { 'createdAtTime' : bigint } |
   { 'productId' : bigint } |
   { 'nowPayment' : bigint } |
   { 'baseRateAsset' : [Asset__1, CheckRate__1] } |
-  { 'ICRC17Endpoint' : Principal } |
-  { 'createAtTime' : bigint } |
   { 'amountPerInterval' : bigint } |
   { 'targetAccount' : Account__1 } |
   { 'tokenCanister' : Principal } |
@@ -406,9 +353,16 @@ export interface TokenInfo {
   'tokenCanister' : Principal,
   'tokenPointer' : [] | [bigint],
 }
+export interface TokenInfo__1 {
+  'tokenFee' : [] | [bigint],
+  'standards' : Array<string>,
+  'tokenTotalSupply' : bigint,
+  'tokenDecimals' : number,
+  'tokenSymbol' : string,
+  'tokenCanister' : Principal,
+  'tokenPointer' : [] | [bigint],
+}
 export type TokenPointer = Uint8Array | number[];
-export type TokenSpec = { 'IC' : ICTokenSpec } |
-  { 'Extensible' : ICRC16 };
 export interface UserSubscriptionsFilter {
   'status' : [] | [SubStatusFilter],
   'subscriptions' : [] | [Array<bigint>],

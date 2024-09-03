@@ -134,7 +134,7 @@ module {
     };
   };
 
-  public type ProductSubscriptionMap = MapLib.Map<?Nat, Nat>;
+  public type ProductSubscriptionMap = MapLib.Map<?Nat, Set.Set<Nat>>;
   public type ServiceSubscriptionMap = MapLib.Map<Principal, ProductSubscriptionMap>;
   public type SubAccountSubscriptionMap = MapLib.Map<Blob, ServiceSubscriptionMap>;
   public type UserSubscriptionIndex = MapLib.Map<Principal, SubAccountSubscriptionMap>;

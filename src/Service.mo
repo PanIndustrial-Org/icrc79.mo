@@ -104,6 +104,7 @@ module {
     #Unauthorized;
     #TokenNotFound;
     #SubscriptionNotFound;
+    #FoundActiveSubscription : Nat;
     #InsufficientAllowance : Nat;
     #InvalidInterval;
     #InvalidDate;
