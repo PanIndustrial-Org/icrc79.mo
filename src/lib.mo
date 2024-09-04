@@ -157,7 +157,6 @@ module {
       var endDate : ?Nat = null;
       var targetAccount : ?Account = null;
       var productId : ?Nat = null;
-      var ICRC17Endpoint : ?Principal = null;
       var firstPayment : ?Nat = null;
       var nowPayment : ?Nat = null;
       var memo : ?Blob = null;
@@ -208,9 +207,7 @@ module {
           case (#productId(val)) {
             productId := ?val;
           };
-          case (#ICRC17Endpoint(val)) {
-            ICRC17Endpoint := ?val;
-          };
+         
           case (#firstPayment(val)) {
             firstPayment := ?val;
           };
@@ -231,9 +228,6 @@ module {
               D.trap("subaccount long");
             };
             subaccount := ?val;
-          };
-          case(#brokerId(val)){
-            brokerId := ?val; 
           };
         };
       };
@@ -264,7 +258,6 @@ module {
           case(?targetAccount) ?targetAccount;
         };
         productId = productId;
-        ICRC17Endpoint = ICRC17Endpoint;
         firstPayment = firstPayment;
         nowPayment = nowPayment;
         memo = memo;
@@ -669,7 +662,6 @@ module {
             baseRateAsset = parsedRequest.baseRateAsset;
             endDate = parsedRequest.endDate;
             targetAccount = parsedRequest.targetAccount;
-            ICRC17Endpoint = parsedRequest.ICRC17Endpoint; 
             account =  parsedRequest.account;
             interval = parsedRequest.interval;
             var nextPayment = parsedRequest.nextPayment;

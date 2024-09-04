@@ -95,10 +95,7 @@ module {
         case(null){};
         case(?val) items.add( ("targetAccount",accountToValue(val)));
       };
-      switch(item.ICRC17Endpoint){
-        case(null){};
-        case(?val) items.add( ("icrc17",#Blob(Principal.toBlob(val))));
-      };
+
 
       return (#Map(Buffer.toArray(items)), #Map(Buffer.toArray(top)));
     };
@@ -125,13 +122,13 @@ module {
         case(null){};
         case(?val) items.add( ("endDate",#Nat(val)));
       };
+       switch(item.productId){
+        case(null){};
+        case(?val) items.add( ("prductId",#Nat(val)));
+      };
       switch(item.targetAccount){
         case(null){};
         case(?val) items.add( ("targetAccount",accountToValue(val)));
-      };
-      switch(item.ICRC17Endpoint){
-        case(null){};
-        case(?val) items.add( ("icrc17",#Blob(Principal.toBlob(val))));
       };
       items.add( ("status",#Text(statusToText(item.status))));
 

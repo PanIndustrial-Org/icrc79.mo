@@ -76,7 +76,6 @@ module {
       baseRateAsset: ?Asset;
       endDate: ?Nat; // Timestamp in nanoseconds to end the subscription
       targetAccount: ?Account;
-      ICRC17Endpoint: ?Principal; // Optional KYC validation endpoint
       account: Account;
       var nextPayment: ?Nat;
       var nextPaymentAmount: ?Nat;
@@ -103,7 +102,6 @@ module {
       checkRate: ?CheckRate;
       endDate: ?Nat; // Timestamp in nanoseconds to end the subscription
       targetAccount: ?Account;
-      ICRC17Endpoint: ?Principal; // Optional KYC validation endpoint
       account: Account;
       nextPayment: ?Nat;
       nextPaymentAmount: ?Nat;
@@ -125,7 +123,6 @@ module {
       brokerId = sub.brokerId;
       endDate = sub.endDate;
       targetAccount = sub.targetAccount;
-      ICRC17Endpoint = sub.ICRC17Endpoint;
       account = sub.account;
       nextPayment = sub.nextPayment;
       nextPaymentAmount = sub.nextPaymentAmount;
@@ -348,7 +345,7 @@ module {
       case(#FiatCurrency){
         accumulator +%= MapLib.thash.0("fiat");
       };
-      case(#Cyptocurrency){
+      case(#Cryptocurrency){
         accumulator +%= MapLib.thash.0("crypto");
       };
     };
