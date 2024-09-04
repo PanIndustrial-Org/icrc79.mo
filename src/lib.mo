@@ -817,10 +817,20 @@ module {
         switch(subscription.status){
           case(#Paused(val)){
             debug logDebug(debug_channel.pause, "Subs: pause_subscription already paused" # debug_show(subscription));
-            if(val.1 != caller or active == false){
-              //only the oringinal pauser can unpause
-              results.add(?#Err(#Unauthorized));
-              continue proc;
+
+            //if the canister paused then either the service or the owner can unpause
+            if(val.1 == canister){
+               if((caller != subscription.serviceCanister and caller != subscription.account.owner) or active == false){
+                //only the oringinal pauser can unpause
+                results.add(?#Err(#Unauthorized));
+                continue proc;
+              };
+            } else {
+              if((val.1 != caller ) or active == false){
+                //only the oringinal pauser can unpause
+                results.add(?#Err(#Unauthorized));
+                continue proc;
+              };
             };
             //reactivate.
 
@@ -1135,6 +1145,16 @@ module {
       if(subscriptionDetails.retries > 10){
         //handle too many retries
         let notificationId = fileNotification(subscription, #LedgerError{error = error; rescheduled = null; subscriptionId = subscription.subscriptionId;});
+        //only the user will be able to reactivate the subscription.
+        pauseSubscription<system>(canister, "Too many retries", false, subscription);
+
+        let (op,top) = Serializer.serializeSubPaused(subscription, "Too many retries", canister, natnow());
+        let trxId = addRecord<system>(op, ?top);
+        
+
+        for(thisListener in pauseSubscriptionListeners.vals()){
+          thisListener.1<system>(subscription, trxId);
+        };
         return notificationId;
       } else {
         let nextTry = (natnow() + (ONE_MINUTE * 60));
@@ -1329,8 +1349,6 @@ module {
           debug logDebug(debug_channel.announce, "Subs: subscriptionPayment transactionId" # debug_show(transactionId));
           
           //add the payment:
-          
-
           let newPayment : PaymentRecord = {
             paymentId = paymentId;
             date = natnow();
