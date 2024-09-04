@@ -218,13 +218,29 @@ type BasicError =  variant {
   };
 };
 
-type CancelError = BasicError;
+type CancelError =  variant {
+    Unauthorized;
+    NotFound;
+    InvalidStatus: SubStatus;
+    Other: {
+      code: Nat;
+      message: Text;
+    };
+  };
 
 type PauseRequest = record {
   subscriptionId: subscriptionId;
 };
 
-type PauseError = BasicError;
+type PauseError = variant {
+    Unauthorized;
+    NotFound;
+    InvalidStatus: SubStatus;
+    Other: {
+      code: Nat;
+      message: Text;
+    };
+  };
 
 ```
 

@@ -769,6 +769,15 @@ module {
           continue proc;
         };
 
+        switch(subscription.status){
+          case(#Active(_)) {};
+          case(#Paused(_)) {};
+          case(_){
+            results.add(?#Err(#InvalidStatus(subscription.status)));
+            continue proc;
+          };
+        };
+
         // cancel
         willCancelSubscription<system>(caller, reason, subscription);
 

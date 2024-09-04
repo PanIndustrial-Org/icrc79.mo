@@ -208,6 +208,7 @@ module {
   public type CancelError = {
     #Unauthorized;
     #NotFound;
+    #InvalidStatus: SubStatus;
     #Other: {
       code: Nat;
       message: Text;
