@@ -60,7 +60,7 @@ module {
       #memo: Blob; //Optional: memo to include with the subscription
       #createdAtTime: Nat; //Optional: timestamp for deduplication
       #subaccount: Blob; //Optional: subaccount to use for the subscription
-      #broker: Principal; //Optional: broker to use for the subscription
+      #broker: Account; //Optional: broker to use for the subscription
   };
 
   public type SubscriptionRequestItemKeys = {
@@ -106,6 +106,7 @@ module {
     #SubscriptionNotFound;
     #FoundActiveSubscription : Nat;
     #InsufficientAllowance : Nat;
+    #InsufficientBalance : Nat;
     #InvalidInterval;
     #InvalidDate;
     #Other: {
@@ -167,7 +168,7 @@ module {
       productId: ?Nat;
       amountPerInterval: Nat;
       baseRateAsset: ?Asset;
-      brokerId: ?Principal;
+      brokerId: ?Account;
       endDate: ?Nat; // Timestamp in nanoseconds to end the subscription
       targetAccount: ?Account;
       account: Account;

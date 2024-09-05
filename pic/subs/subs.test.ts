@@ -1727,7 +1727,7 @@ describe("test subs", () => {
   };
 
 
-  let aTest2 = await tester_fixture.actor.checksubscription(subs_fixture.canisterId, [0n], 5_000_000n);
+  let aTest2 = await tester_fixture.actor.checksubscription(subs_fixture.canisterId, [0n], 10_000_000n);
 
   console.log(aTest2);
 

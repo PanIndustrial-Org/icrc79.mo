@@ -163,7 +163,7 @@ module {
       var createdAtTime : ?Nat = null;
       var subaccount : ?Blob = null;
       var checkRate : ?CheckRate = null;
-      var brokerId : ?Principal = null;
+      var brokerId : ?Account = null;
 
       for(thisItem in request.vals()){
         switch(thisItem){
@@ -423,7 +423,7 @@ module {
 
       let available = ExperimentalCycles.available();
 
-      if(available < 5_000_000 * confirmRequests.size()){
+      if(available < 10_000_000 * confirmRequests.size()){
         D.trap("Subs: checkAllowanceForSubscription not enough cycles available");
       };
       
@@ -478,10 +478,37 @@ module {
               continue proc;
             };
             case (#ok){
-              results.add(?#Ok(subscription.subscriptionId));
+              
             };
                 // Proceed with subscription creation
         };
+
+        xnet += 5_000_000;
+
+        let balance = try{
+          await* checkBalance(subscription.tokenCanister, subscription.account, requiredAmount);
+        } catch (error) {
+          results.add(?#Err(#Other({message = Error.message(error); code = 1;})));
+          
+          continue proc;
+        };
+
+        debug logDebug(debug_channel.subscribe,"Subs: balanceResult" # debug_show(balance));
+
+        switch (balance) {
+            case (#err(err)){
+              results.add(?#Err(#InsufficientBalance(err)));
+              continue proc;
+            };
+            case (#ok){
+              
+            };
+                // Proceed with subscription creation
+        };
+
+
+
+        results.add(?#Ok(subscription.subscriptionId));
       };
 
       if(xnet < available){
@@ -1117,6 +1144,22 @@ module {
       return #ok;
     };
     return #err(result.allowance);
+  };
+
+  private func checkBalance(tokenCanister: Principal, owner: Account,  amount: Nat) : async* Result.Result<(), Nat> {
+
+    let icrc2Actor : ICRC2Actor = actor(Principal.toText(tokenCanister));
+      
+    let result = try{
+      await icrc2Actor.icrc1_balance_of(owner);
+    } catch(err){
+      return #err(0);
+    };
+
+    if(result >= amount){
+      return #ok;
+    };
+    return #err(result);
   };
 
   private func fileNotification(subscription: SubscriptionState, error: ServiceNotificationType) : () {

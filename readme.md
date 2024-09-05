@@ -121,7 +121,7 @@ Subscrption requests are an array of possible subscription items. Items should o
       #memo: Blob; //Optional: memo to include with the subscription
       #createdAtTime: Nat; //Optional: timestamp for deduplication
       #subaccount: Blob; //Optional: subaccount to use for the subscription
-      #broker:Principal; //Optional: broker to use for the subscription
+      #broker:Account; //Optional: broker to use for the subscription
   };
 ```
 

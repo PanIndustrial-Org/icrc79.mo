@@ -48,6 +48,7 @@ type Interval = variant {
       memo: Blob; //Optional: memo to include with the subscription
       createdAtTime: Nat; //Optional: timestamp for deduplication
       subaccount: Blob; //Optional: subaccount to use for the subscription
+      broker: Account; //Optional: broker that may be paid a fee for the subscription
   };
 
   public type SubscriptionRequestItemKeys = variant {
@@ -82,6 +83,7 @@ type SubscriptionError = variant {
   Duplicate; //due to async nature, can't provide id
   SubscriptionNotFound;
   InsufficientAllowance : nat;
+  InsufficientBalance : nat;
   InvalidDate;
   InvalidInterval;
   FoundActiveSubscription : nat;
@@ -555,6 +557,7 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
    - `amtPerInterval: Value.Nat` - Tokens transferred per interval.
    - `endDate: Value.Opt(Value.Nat)` - Optional timestamp of when the subscription should end.
    - `targetAccount: Value.Array([Value.Blob,?Value.Blob]` - Serialized account to which tokens are sent.
+   - `broker: Value.Array([Value.Blob,?Value.Blob]` - Serialized account for the broker.
    - `status: Value.Text` - Initial status of the subscription.
    - `memo: Value.Opt(Value.Text)` - Optional additional information about the subscription.
    - `createdAt: Value.Nat` - Timestamp of when the subscription was created.
@@ -588,6 +591,8 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
    - `rate: Value.Nat` - Optional - Rate if it was used.
    - `rateBase: Value.Text - Optional - Symbol of the exchange rate used if present.
    - `ledgerTransactionId: Value.Nat` - Reference ID in the token ledger.
+   - `feeTransactionId: Value.Nat` - Reference ID in the token ledger.
+   - `brokerTransactionId: Value.Nat` - Reference ID in the token ledger.
    - `tokenLedger: Value.Blob` - Principal of the token ledger.
    - `tokenPointer: Value.Blob` - Optional. Principal of the token pointer.
    - `paymentDate: Value.Nat` - Date and time when the payment was processed.

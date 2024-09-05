@@ -72,7 +72,7 @@ module {
       interval: Interval;
       productId: ?Nat;
       amountPerInterval: Nat;
-      brokerId: ?Principal;
+      brokerId: ?Account;
       baseRateAsset: ?Asset;
       endDate: ?Nat; // Timestamp in nanoseconds to end the subscription
       targetAccount: ?Account;
@@ -98,7 +98,7 @@ module {
       productId: ?Nat;
       amountPerInterval: Nat;
       baseRateAsset: ?Asset;
-      brokerId: ?Principal;
+      brokerId: ?Account;
       checkRate: ?CheckRate;
       endDate: ?Nat; // Timestamp in nanoseconds to end the subscription
       targetAccount: ?Account;
