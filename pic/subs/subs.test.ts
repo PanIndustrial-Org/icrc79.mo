@@ -156,7 +156,7 @@ describe("test subs", () => {
     expect(hello).toBe("Hello World!");
   });
 
-  it(`can create an immediate subscription and the payment is processed`, async () => {
+  it.only(`can create an immediate subscription and the payment is processed`, async () => {
 
     const alicesub1 = new Uint8Array(Buffer.from("asdcxzvuioashnuiddsfsdedfsdedffe", "utf-8"))
 
@@ -674,7 +674,7 @@ describe("test subs", () => {
     let aliceBalance =await nnsledger.icrc1_balance_of({owner : alice.getPrincipal(), subaccount :[]});
     let aliceSubBalance = await nnsledger.icrc1_balance_of({owner : alice.getPrincipal(), subaccount :[alicesub1]});
     let bobBalance = await nnsledger.icrc1_balance_of({owner : bob.getPrincipal(), subaccount :[]});
-    let feeBalance =  await nnsledger.icrc1_balance_of({owner : Principal.fromText("ifoh3-ksock-kdg2i-274hs-z3x7e-irgfv-eyqzv-esrlt-2qywt-jbocu-gae"), subaccount :[]});
+    let feeBalance =  await nnsledger.icrc1_balance_of({owner : Principal.fromText("agtsn-xyaaa-aaaag-ak3kq-cai"), subaccount :[[39,167,236,212,75,183,197,29,163,240,112,67,54,45,238,71,220,227,55,132,102,170,154,183,149,180,185,26,233,48,38,105]]});
 
     expect(serviceBalance).toEqual(12805000n);
     expect(service2Balance).toEqual(25610000n);

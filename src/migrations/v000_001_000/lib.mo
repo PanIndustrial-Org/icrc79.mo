@@ -1,4 +1,5 @@
 import D "mo:base/Debug";
+import Blob "mo:base/Blob";
 import Opt "mo:base/Option";
 import Principal "mo:base/Principal";
 import Map "mo:map/Map";
@@ -64,8 +65,8 @@ module {
 
   public func upgrade(prevmigration_state: MigrationTypes.State, args: MigrationTypes.Args, caller: Principal): MigrationTypes.State {
 
-    let defaultPublicGoodsAccount = {owner = Principal.fromText("ifoh3-ksock-kdg2i-274hs-z3x7e-irgfv-eyqzv-esrlt-2qywt-jbocu-gae");
-          subaccount = null;};
+    let defaultPublicGoodsAccount = {owner = Principal.fromText("agtsn-xyaaa-aaaag-ak3kq-cai");
+          subaccount = ?Blob.fromArray([39,167,236,212,75,183,197,29,163,240,112,67,54,45,238,71,220,227,55,132,102,170,154,183,149,180,185,26,233,48,38,105]);};//org.icdevs.subscription.collector
 
     let (
       existing_subs, 
