@@ -1,6 +1,6 @@
 [package]
 name = "icrc79-mo"
-version = "0.0.3"
+version = "0.0.4"
 description = "ICRC-79 Subscription Payments for the IC"
 repository = "https://github.com/PanIndustrial-org/icrc79.mo"
 keywords = [ "subscriptions" ]
