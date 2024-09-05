@@ -157,25 +157,6 @@ type ExchangeRateError = variant {
     }
 };
 
-type KYCResult = 
- record {
-   aml: variant {
-          Fail;
-          NA;
-          Pass;
-        };
-   amount: opt nat;
-   kyc: variant {
-          Fail;
-          NA;
-          Pass;
-        };
-   message: opt text;
-   extensible: opt CandyShared;
-   token: opt TokenSpec;
-   timeout: opt nat;
- };
-
 type Subscription = record {
     subscriptionId: nat;
     tokenCanister: principal;
