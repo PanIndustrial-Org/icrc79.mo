@@ -156,7 +156,7 @@ describe("test subs", () => {
     expect(hello).toBe("Hello World!");
   });
 
-  it.only(`can create an immediate subscription and the payment is processed`, async () => {
+  it(`can create an immediate subscription and the payment is processed`, async () => {
 
     const alicesub1 = new Uint8Array(Buffer.from("asdcxzvuioashnuiddsfsdedfsdedffe", "utf-8"))
 
@@ -1727,7 +1727,7 @@ describe("test subs", () => {
   };
 
 
-  let aTest2 = await tester_fixture.actor.checksubscription(subs_fixture.canisterId, [0n], 501_000n);
+  let aTest2 = await tester_fixture.actor.checksubscription(subs_fixture.canisterId, [0n], 5_000_000n);
 
   console.log(aTest2);
 

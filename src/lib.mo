@@ -423,7 +423,7 @@ module {
 
       let available = ExperimentalCycles.available();
 
-      if(available < 500_000 * confirmRequests.size()){
+      if(available < 5_000_000 * confirmRequests.size()){
         D.trap("Subs: checkAllowanceForSubscription not enough cycles available");
       };
       
@@ -437,15 +437,17 @@ module {
 
         let ?subscription = Map.get(state.subscriptions, Map.nhash, thisSub.subscriptionId) else {
           results.add(?#Err(#SubscriptionNotFound));
+          xnet += 3_000_000;
           continue proc;
         };
 
         let ?tokenInfo = Map.get(state.tokenInfo, ktHash, (subscription.tokenCanister, subscription.tokenPointer)) else {
             results.add(?#Err(#TokenNotFound));
+            xnet += 3_000_000;
             continue proc;
         };
 
-        xnet += 500_000;
+        xnet += 5_000_000;
 
         // Validate allowance - must be enough for at least the first interval
         // todo: also check the first payment pathway
@@ -464,6 +466,7 @@ module {
           await* checkAllowance(subscription.tokenCanister, subscription.account, {owner = canister; subaccount = null;}, requiredAmount);
         } catch (error) {
           results.add(?#Err(#Other({message = Error.message(error); code = 1;})));
+          
           continue proc;
         };
 
@@ -1486,6 +1489,10 @@ module {
               params = to_candid({});
             }, ONE_MINUTE * 5);
             paymentsSinceShare := 0;
+          };
+
+          for(thisItem in newPaymentListeners.vals()){
+            thisItem.1<system>(subscription, newPayment, trx);
           };
           
 

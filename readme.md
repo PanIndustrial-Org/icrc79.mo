@@ -207,6 +207,22 @@ To fetch a list of payments related to subscriptions, use the `icrc79_get_user_p
 }
 ```
 
+#### 5. Check status of next payment
+
+Services may check the status of the next payment for a subscription using the `icrc79_confirm_subscription` endpoint. The item takes a vector of Confirm Requests. The check Rate, if provided will adjust the amount per interval by the associated amount in bps.  This can be used to adjust for volatility or a conversion rate.
+
+**Parameters:**
+
+```
+  public type ConfirmRequests = {
+    subscriptionId: Nat;
+    checkRate: ?CheckRate;
+  };
+
+```
+
+This function must be called by a canister and must include 5_000_000 cycles per individual request in the vector.
+
 ## Interceptors and Listeners
 
 The ICRC-79 standard offers flexibility in customizing the behavior of various subscription-related processes through the use of interceptors and listeners. These are essentially hooks that allow you to intercept and modify the behavior or react to certain events occurring within the system. This functionality can be particularly useful for integrating additional business logic or for monitoring purposes.
