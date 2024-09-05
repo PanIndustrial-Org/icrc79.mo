@@ -2,12 +2,11 @@
 
 |ICRC|Title|Author|Discussions|Status|Type|Category|Created|
 |:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
-|79|Secure Subscription Canister Standard|spudsubs @spudsubs|https://github.com/dfinity/ICRC/issues/79|Draft|Standards Track|Financial|2023-XX-XX|
+|79|Secure Subscription Canister Standard|Austin Fatheree @skilesare|https://github.com/dfinity/ICRC/issues/79|Draft|Standards Track|Financial|2024-09-05|
 
 ## Data Types Definition
 
 This section outlines the core data types utilized in the ICRC-79 standard, facilitating the description and structuring of data relevant to secure subscription canisters.
-
 
 ### Subscription
 
