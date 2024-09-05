@@ -221,7 +221,7 @@ Services may check the status of the next payment for a subscription using the `
 
 ```
 
-This function must be called by a canister and must include 5_000_000 cycles per individual request in the vector.
+This function must be called by a canister and must include 10_000_000 cycles per individual request in the vector.
 
 ## Interceptors and Listeners
 
