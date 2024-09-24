@@ -37,7 +37,8 @@ export type AssetClass = { 'Cryptocurrency' : null } |
 export type AssetClass__1 = { 'Cryptocurrency' : null } |
   { 'FiatCurrency' : null };
 export interface Asset__1 { 'class' : AssetClass__1, 'symbol' : string }
-export type CancelError = { 'NotFound' : null } |
+export type CancelError = { 'InvalidStatus' : SubStatus__1 } |
+  { 'NotFound' : null } |
   { 'Unauthorized' : null } |
   { 'Other' : { 'code' : bigint, 'message' : string } };
 export type CancelResult = [] | [{ 'Ok' : bigint } | { 'Err' : CancelError }];
@@ -132,16 +133,20 @@ export interface PauseRequestItem {
 export type PauseResult = [] | [{ 'Ok' : bigint } | { 'Err' : PauseError }];
 export interface PaymentRecord {
   'fee' : [] | [bigint],
+  'service' : Principal,
   'result' : { 'Ok' : null } |
     { 'Err' : { 'code' : bigint, 'message' : string } },
   'feeTransactionId' : [] | [bigint],
   'date' : bigint,
   'rate' : [] | [ExchangeRate],
+  'productId' : [] | [bigint],
   'ledgerTransactionId' : [] | [bigint],
   'subscriptionId' : bigint,
   'brokerFee' : [] | [bigint],
+  'account' : Account__1,
   'paymentId' : bigint,
   'amount' : bigint,
+  'targetAccount' : [] | [Account__1],
   'brokerTransactionId' : [] | [bigint],
   'transactionId' : [] | [bigint],
 }
@@ -282,7 +287,7 @@ export interface Subscription {
   'subscriptionId' : bigint,
   'baseRateAsset' : [] | [Asset__1],
   'account' : Account__1,
-  'brokerId' : [] | [Principal],
+  'brokerId' : [] | [Account__1],
   'amountPerInterval' : bigint,
   'targetAccount' : [] | [Account__1],
   'tokenCanister' : Principal,
@@ -293,6 +298,7 @@ export type SubscriptionError = { 'TokenNotFound' : null } |
   { 'SubscriptionNotFound' : null } |
   { 'Duplicate' : null } |
   { 'FoundActiveSubscription' : bigint } |
+  { 'InsufficientBalance' : bigint } |
   { 'InvalidDate' : null } |
   { 'Unauthorized' : null } |
   { 'Other' : { 'code' : bigint, 'message' : string } } |
@@ -300,7 +306,7 @@ export type SubscriptionError = { 'TokenNotFound' : null } |
 export type SubscriptionRequest = Array<Array<SubscriptionRequestItem>>;
 export type SubscriptionRequestItem = { 'serviceCanister' : Principal } |
   { 'firstPayment' : bigint } |
-  { 'broker' : Principal } |
+  { 'broker' : Account__1 } |
   { 'endDate' : bigint } |
   { 'interval' : Interval__1 } |
   { 'memo' : Uint8Array | number[] } |
@@ -334,9 +340,8 @@ export interface SubscriptionStateShared {
   'baseRateAsset' : [] | [Asset],
   'checkRate' : [] | [CheckRate],
   'account' : Account,
-  'brokerId' : [] | [Principal],
+  'brokerId' : [] | [Account],
   'nextTimerId' : [] | [ActionId],
-  'ICRC17Endpoint' : [] | [Principal],
   'nextPayment' : [] | [bigint],
   'amountPerInterval' : bigint,
   'targetAccount' : [] | [Account],

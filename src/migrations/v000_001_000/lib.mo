@@ -159,7 +159,7 @@ module {
       };
     };
 
-    let state : MigrationTypes.Current.State = {
+    let state : v0_1_0.State = {
       userSubscriptionIndex = userIndex;
       serviceSubscriptionIndex = serviceIndex;
       subscriptions = existing_subs;

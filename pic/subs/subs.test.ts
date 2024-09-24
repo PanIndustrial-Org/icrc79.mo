@@ -406,6 +406,12 @@ describe("test subs", () => {
 
     const item = serviceSubs7[0].subscriptionId;
 
+    const serviceSubsAll= await subs_fixture.actor.icrc79_get_service_subscriptions(serviceProvider2.getPrincipal(), [], [], []);
+
+    console.log("serviceSubsAll", serviceSubsAll);
+
+
+
     const serviceSubs8= await subs_fixture.actor.icrc79_get_service_subscriptions(serviceProvider2.getPrincipal(), [], [item], [1n]);
 
     console.log("serviceSubs8", serviceSubs8);
@@ -638,12 +644,23 @@ describe("test subs", () => {
 
     console.log("payments8", payments8);
 
+    const paymentsServiceAll = await subs_fixture.actor.icrc79_get_service_payments(serviceProvider2.getPrincipal(), [{
+      subscriptions: [],
+      status: [],
+      products: [[[2n]]],
+    }], [],  []);
+
+    console.log("paymentsServiceAll", paymentsServiceAll);
+
 
     const paymentsService9 = await subs_fixture.actor.icrc79_get_service_payments(serviceProvider2.getPrincipal(), [{
       subscriptions: [],
       status: [],
       products: [[[2n]]],
     }], [],  [2n]);
+
+
+    console.log("paymentsService9", paymentsService9);
 
     expect(paymentsService9.length).toEqual(2);
 
@@ -654,6 +671,8 @@ describe("test subs", () => {
       status: [],
       products: [[[2n]]],
     }], [item3],  [2n]);
+
+    console.log("paymentsService10", paymentsService10);
 
     expect(paymentsService10.length).toEqual(2);
 

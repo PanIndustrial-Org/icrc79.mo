@@ -5,6 +5,7 @@ export const idlFactory = ({ IDL }) => {
     'SubscriptionNotFound' : IDL.Null,
     'Duplicate' : IDL.Null,
     'FoundActiveSubscription' : IDL.Nat,
+    'InsufficientBalance' : IDL.Nat,
     'InvalidDate' : IDL.Null,
     'Unauthorized' : IDL.Null,
     'Other' : IDL.Record({ 'code' : IDL.Nat, 'message' : IDL.Text }),
