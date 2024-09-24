@@ -47,9 +47,11 @@ type SubscriptionStateShared =
    baseRateAsset: opt Asset;
    brokerId: opt Account;
    checkRate: opt CheckRate;
+   createdAt: opt nat;
    endDate: opt nat;
    history: vec nat;
    interval: Interval;
+   memo: opt blob;
    nextPayment: opt nat;
    nextPaymentAmount: opt nat;
    nextTimerId: opt ActionId;

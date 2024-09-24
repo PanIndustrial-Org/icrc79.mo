@@ -1,3 +1,9 @@
+## v0_2_2 - 2024-09-24
+
+### Fixed
+
+- Additional Dedups for Requests
+
 ## v0_2_1 - 2024-09-24
 
 ### Fixed

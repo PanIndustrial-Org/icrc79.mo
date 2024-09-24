@@ -535,11 +535,15 @@ ICRC-79 expands on the ICRC-3 specification for defining the format for storing 
 2. **Transaction (`tx`) Contents:**
    - `subscriptionId: Value.Nat` - Identifier of the new subscription.
    - `creator: Value.Principal` - Principal ID of the user initiating the subscription.
+   - `subaccount: Value.Blob?` - Subaccount if present
    - `tokenCanister: Value.Principal` - Principal ID of the canister managing the tokens.
+   - `tokenPointer: Value.Blob?` - Optional for ICRC80 tokens.
+   - `serviceCanister: Value.Principal` - Principal ID of the canister providing the service.
    - `interval: Value.Text` - Subscription interval details in descriptive text.
-   - `intervalAmt: Value.Nat` - Subscription interval count if applicable.
+   - `intervalAmt: Value.Nat?` - Subscription interval count if applicable.
    - `amtPerInterval: Value.Nat` - Tokens transferred per interval.
-   - `endDate: Value.Opt(Value.Nat)` - Optional timestamp of when the subscription should end.
+   - `productId: Value.Nat?` - Tokens transferred per interval.
+   - `endDate: Value.Nat?` - Optional timestamp of when the subscription should end.
    - `targetAccount: Value.Array([Value.Blob,?Value.Blob]` - Serialized account to which tokens are sent.
    - `broker: Value.Array([Value.Blob,?Value.Blob]` - Serialized account for the broker.
    - `status: Value.Text` - Initial status of the subscription.

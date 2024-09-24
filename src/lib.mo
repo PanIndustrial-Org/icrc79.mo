@@ -271,7 +271,7 @@ module {
         firstPayment = firstPayment;
         nowPayment = nowPayment;
         memo = memo;
-        createdAtTime = createdAtTime;
+        createdAt = createdAtTime;
         checkRate = checkRate;
         account = {
           owner = caller;
@@ -737,7 +737,7 @@ module {
             history = Vector.new<Nat>(); 
         };
 
-        let (op,top) = Serializer.serializeSubCreate(newSubscription, caller, natnow());
+        let (op,top) = Serializer.serializeSubCreate(newSubscription, parsedRequest.memo, parsedRequest.createdAt, caller, natnow());
 
         let (finalSub, finalOp, finalTop) = switch(canAddSubscription){
           case(?val){

@@ -104,6 +104,8 @@ module {
       targetAccount: ?Account;
       account: Account;
       nextPayment: ?Nat;
+      memo: ?Blob;
+      createdAt: ?Nat;
       nextPaymentAmount: ?Nat;
       nextTimerId: ?TTLib.ActionId;
       status: SubStatus;

@@ -71,6 +71,7 @@ module {
     };
 
     public func serializeSubRequest(item: SubscriptionStateShared, caller: Principal, time: Nat) : (Value,Value) {
+      //todo: add rate items when updating to flexible rates
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
@@ -80,6 +81,11 @@ module {
       items.add( ("btype", #Text("79subRequest")));
       items.add( ("creator",#Blob(Principal.toBlob(caller))));
       items.add( ("tokenCanister",#Blob(Principal.toBlob(item.tokenCanister))));
+      switch(item.tokenPointer){
+        case(null){};
+        case(?val) items.add( ("tokenPointer",#Blob(val)));
+      };
+      items.add( ("serviceCanister",#Blob(Principal.toBlob(item.serviceCanister))));
       items.add( ("interval",#Text(intervalToText(item.interval))));
       switch(intervalToCount(item.interval)){
         case(null){};
@@ -95,12 +101,24 @@ module {
         case(null){};
         case(?val) items.add( ("targetAccount",accountToValue(val)));
       };
+      switch(item.productId){
+        case(null){};
+        case(?val) items.add( ("productId",#Nat(val)));
+      };
+      switch(item.memo){
+        case(null){};
+        case(?val) items.add( ("memo",#Blob(val)));
+      };
+      switch(item.createdAt){
+        case(null){};
+        case(?val) items.add( ("createdAt",#Nat(val)));
+      };
 
 
       return (#Map(Buffer.toArray(items)), #Map(Buffer.toArray(top)));
     };
 
-    public func serializeSubCreate(item: SubscriptionState, caller: Principal, time: Nat) : (Value,Value) {
+    public func serializeSubCreate(item: SubscriptionState, memo: ?Blob, created_at_time: ?Nat, caller: Principal, time: Nat) : (Value,Value) {
       let items = Buffer.Buffer<(Text, Value)>(1);
       let top = Buffer.Buffer<(Text, Value)>(1);
 
@@ -111,7 +129,15 @@ module {
       items.add( ("btype", #Text("79subCreate")));
       items.add( ("subscriptionId",#Nat(item.subscriptionId)));
       items.add( ("creator",#Blob(Principal.toBlob(caller))));
+      switch(item.account.subaccount){
+        case(null){};
+        case(?val) items.add( ("subaccount", #Blob(val)));
+      };
       items.add( ("tokenCanister",#Blob(Principal.toBlob(item.tokenCanister))));
+      switch(item.tokenPointer){
+        case(null){};
+        case(?val) items.add( ("tokenPointer",#Blob(val)));
+      };
       items.add( ("interval",#Text(intervalToText(item.interval))));
       switch(intervalToCount(item.interval)){
         case(null){};
@@ -122,7 +148,7 @@ module {
         case(null){};
         case(?val) items.add( ("endDate",#Nat(val)));
       };
-       switch(item.productId){
+      switch(item.productId){
         case(null){};
         case(?val) items.add( ("productId",#Nat(val)));
       };
@@ -131,6 +157,18 @@ module {
         case(?val) items.add( ("targetAccount",accountToValue(val)));
       };
       items.add( ("status",#Text(statusToText(item.status))));
+      switch(item.brokerId){
+        case(null){};
+        case(?val) items.add( ("broker",accountToValue(val)));
+      };
+      switch(memo){
+        case(null){};
+        case(?val) items.add( ("memo",#Blob(val)));
+      };
+      switch(created_at_time){
+        case(null){};
+        case(?val) items.add( ("createdAt",#Nat(val)));
+      };
 
       return (#Map(Buffer.toArray(items)), #Map(Buffer.toArray(top)));
     };

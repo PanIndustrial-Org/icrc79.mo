@@ -6,8 +6,6 @@ import Map "mo:map/Map";
 import Set "mo:map/Set";
 import Vec "mo:vector";
 
-
-
 import MigrationTypes "../types";
 import v0_1_0 "types";
 

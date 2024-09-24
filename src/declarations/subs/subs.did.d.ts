@@ -334,6 +334,8 @@ export interface SubscriptionStateShared {
   'nextPaymentAmount' : [] | [bigint],
   'endDate' : [] | [bigint],
   'interval' : Interval,
+  'memo' : [] | [Uint8Array | number[]],
+  'createdAt' : [] | [bigint],
   'history' : Array<bigint>,
   'productId' : [] | [bigint],
   'subscriptionId' : bigint,
