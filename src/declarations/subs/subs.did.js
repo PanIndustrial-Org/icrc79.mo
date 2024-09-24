@@ -41,9 +41,8 @@ export const idlFactory = ({ IDL }) => {
     'baseRateAsset' : IDL.Opt(Asset),
     'checkRate' : IDL.Opt(CheckRate),
     'account' : Account,
-    'brokerId' : IDL.Opt(IDL.Principal),
+    'brokerId' : IDL.Opt(Account),
     'nextTimerId' : IDL.Opt(ActionId),
-    'ICRC17Endpoint' : IDL.Opt(IDL.Principal),
     'nextPayment' : IDL.Opt(IDL.Nat),
     'amountPerInterval' : IDL.Nat,
     'targetAccount' : IDL.Opt(Account),
@@ -111,7 +110,14 @@ export const idlFactory = ({ IDL }) => {
     'tokenCanister' : IDL.Principal,
     'tokenPointer' : IDL.Opt(IDL.Nat),
   });
+  const SubStatus__1 = IDL.Variant({
+    'Paused' : IDL.Tuple(IDL.Nat, IDL.Principal, IDL.Text),
+    'Active' : IDL.Null,
+    'WillCancel' : IDL.Tuple(IDL.Nat, IDL.Principal, IDL.Text),
+    'Canceled' : IDL.Tuple(IDL.Nat, IDL.Nat, IDL.Principal, IDL.Text),
+  });
   const CancelError = IDL.Variant({
+    'InvalidStatus' : SubStatus__1,
     'NotFound' : IDL.Null,
     'Unauthorized' : IDL.Null,
     'Other' : IDL.Record({ 'code' : IDL.Nat, 'message' : IDL.Text }),
@@ -133,6 +139,7 @@ export const idlFactory = ({ IDL }) => {
     'SubscriptionNotFound' : IDL.Null,
     'Duplicate' : IDL.Null,
     'FoundActiveSubscription' : IDL.Nat,
+    'InsufficientBalance' : IDL.Nat,
     'InvalidDate' : IDL.Null,
     'Unauthorized' : IDL.Null,
     'Other' : IDL.Record({ 'code' : IDL.Nat, 'message' : IDL.Text }),
@@ -141,12 +148,6 @@ export const idlFactory = ({ IDL }) => {
   const ConfirmResult = IDL.Opt(
     IDL.Variant({ 'Ok' : IDL.Nat, 'Err' : SubscriptionError })
   );
-  const SubStatus__1 = IDL.Variant({
-    'Paused' : IDL.Tuple(IDL.Nat, IDL.Principal, IDL.Text),
-    'Active' : IDL.Null,
-    'WillCancel' : IDL.Tuple(IDL.Nat, IDL.Principal, IDL.Text),
-    'Canceled' : IDL.Tuple(IDL.Nat, IDL.Nat, IDL.Principal, IDL.Text),
-  });
   const Interval__1 = IDL.Variant({
     'Hourly' : IDL.Null,
     'Interval' : IDL.Nat,
@@ -176,7 +177,7 @@ export const idlFactory = ({ IDL }) => {
     'subscriptionId' : IDL.Nat,
     'baseRateAsset' : IDL.Opt(Asset__1),
     'account' : Account__1,
-    'brokerId' : IDL.Opt(IDL.Principal),
+    'brokerId' : IDL.Opt(Account__1),
     'amountPerInterval' : IDL.Nat,
     'targetAccount' : IDL.Opt(Account__1),
     'tokenCanister' : IDL.Principal,
@@ -271,6 +272,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const PaymentRecord = IDL.Record({
     'fee' : IDL.Opt(IDL.Nat),
+    'service' : IDL.Principal,
     'result' : IDL.Variant({
       'Ok' : IDL.Null,
       'Err' : IDL.Record({ 'code' : IDL.Nat, 'message' : IDL.Text }),
@@ -278,11 +280,14 @@ export const idlFactory = ({ IDL }) => {
     'feeTransactionId' : IDL.Opt(IDL.Nat),
     'date' : IDL.Nat,
     'rate' : IDL.Opt(ExchangeRate),
+    'productId' : IDL.Opt(IDL.Nat),
     'ledgerTransactionId' : IDL.Opt(IDL.Nat),
     'subscriptionId' : IDL.Nat,
     'brokerFee' : IDL.Opt(IDL.Nat),
+    'account' : Account__1,
     'paymentId' : IDL.Nat,
     'amount' : IDL.Nat,
+    'targetAccount' : IDL.Opt(Account__1),
     'brokerTransactionId' : IDL.Opt(IDL.Nat),
     'transactionId' : IDL.Opt(IDL.Nat),
   });
@@ -327,7 +332,7 @@ export const idlFactory = ({ IDL }) => {
   const SubscriptionRequestItem = IDL.Variant({
     'serviceCanister' : IDL.Principal,
     'firstPayment' : IDL.Nat,
-    'broker' : IDL.Principal,
+    'broker' : Account__1,
     'endDate' : IDL.Nat,
     'interval' : Interval__1,
     'memo' : IDL.Vec(IDL.Nat8),
@@ -478,9 +483,8 @@ export const init = ({ IDL }) => {
     'baseRateAsset' : IDL.Opt(Asset),
     'checkRate' : IDL.Opt(CheckRate),
     'account' : Account,
-    'brokerId' : IDL.Opt(IDL.Principal),
+    'brokerId' : IDL.Opt(Account),
     'nextTimerId' : IDL.Opt(ActionId),
-    'ICRC17Endpoint' : IDL.Opt(IDL.Principal),
     'nextPayment' : IDL.Opt(IDL.Nat),
     'amountPerInterval' : IDL.Nat,
     'targetAccount' : IDL.Opt(Account),

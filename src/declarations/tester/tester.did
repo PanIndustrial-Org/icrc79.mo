@@ -7,6 +7,7 @@ type SubscriptionError =
    Duplicate;
    FoundActiveSubscription: nat;
    InsufficientAllowance: nat;
+   InsufficientBalance: nat;
    InvalidDate;
    InvalidInterval;
    Other: record {

@@ -47,15 +47,15 @@ module {
   public type TokenInfo =                       MigrationTypes.Current.TokenInfo;
   public type SubStatus =                       MigrationTypes.Current.SubStatus;
   public type Value =                           MigrationTypes.Current.Value;
-  public type ProductSubscriptionMap =          MigrationTypes.Current.ProductSubscriptionMap;
-  public type ServiceSubscriptionMap =          MigrationTypes.Current.ServiceSubscriptionMap;
-  public type SubAccountSubscriptionMap =       MigrationTypes.Current.SubAccountSubscriptionMap;
-  public type UserSubscriptionIndex =           MigrationTypes.Current.UserSubscriptionIndex;
+  public type ProductSubscriptionMap =          MigrationTypes.Current.ProductSubscriptionMap2;
+  public type ServiceSubscriptionMap =          MigrationTypes.Current.ServiceSubscriptionMap2;
+  public type SubAccountSubscriptionMap =       MigrationTypes.Current.SubAccountSubscriptionMap2;
+  public type UserSubscriptionIndex =           MigrationTypes.Current.UserSubscriptionIndex2;
   public type CanAddSubscription =              MigrationTypes.Current.CanAddSubscription;
   public type ScheduledPaymentArgs =            MigrationTypes.Current.ScheduledPaymentArgs;
   public type ServiceNotificationType =         MigrationTypes.Current.ServiceNotificationType;
   public type ServiceNotification =             MigrationTypes.Current.ServiceNotification;
-  public type PaymentRecord =                   MigrationTypes.Current.PaymentRecord;
+  public type PaymentRecord =                   MigrationTypes.Current.PaymentRecord2;
   public type ExchangeRate =                    MigrationTypes.Current.ExchangeRate;
   public type ExchangeRateMetadata =            MigrationTypes.Current.ExchangeRateMetadata;
   public type Asset =                           MigrationTypes.Current.Asset;
@@ -70,6 +70,7 @@ module {
 
   public let ktHash =                           MigrationTypes.Current.ktHash;
   public let nullNHash =                        MigrationTypes.Current.nullNHash;
+  public let nullNcompare =                     MigrationTypes.Current.nullNcompare;
   public let nullSubaccount =                   MigrationTypes.Current.nullSubaccount;
   public let TT =                               MigrationTypes.Current.TimerTool;
   public let isICRC80 =                         MigrationTypes.Current.isICRC80;
@@ -102,7 +103,7 @@ module {
   
 
   public func initialState() : State {#v0_0_0(#data)};
-  public let currentStateVersion = #v0_1_0(#id);
+  public let currentStateVersion = #v0_2_0(#id);
 
   public let init = Migration.migrate;
 
@@ -110,6 +111,15 @@ module {
   public let Map = MigrationTypes.Current.Map;
   public let Set = MigrationTypes.Current.Set;
   public let Vector = MigrationTypes.Current.Vector;
+  public let BTree = MigrationTypes.Current.BTree;
+
+  public let subaccountToBlob = MigrationTypes.Current.subaccountToBlob;
+  public let findOrCreateUserProductMap = MigrationTypes.Current.findOrCreateUserProductMap;
+  public let findOrCreateServiceProductMap = MigrationTypes.Current.findOrCreateServiceProductMap;
+  public let servicePaymentRecordCompare = MigrationTypes.Current.servicePaymentRecordCompare;
+  public let serviceSubscriptionCompare = MigrationTypes.Current.serviceSubscriptionCompare;
+  public let userSubscriptionCompare = MigrationTypes.Current.userSubscriptionCompare;
+  public let userPaymentRecordCompare = MigrationTypes.Current.userPaymentRecordCompare;
 
   public let ONE_MINUTE = 60_000_000_000;
 
@@ -117,11 +127,11 @@ module {
 
     var state : CurrentState = switch(stored){
       case(null) {
-        let #v0_1_0(#data(foundState)) = init(initialState(),currentStateVersion, null, canister);
+        let #v0_2_0(#data(foundState)) = init(initialState(),currentStateVersion, null, canister);
         foundState;
       };
       case(?val) {
-        let #v0_1_0(#data(foundState)) = init(val,currentStateVersion, null, canister);
+        let #v0_2_0(#data(foundState)) = init(val,currentStateVersion, null, canister);
         foundState;
       };
     };
@@ -435,7 +445,7 @@ module {
 
       label proc for(thisSub in confirmRequests.vals()){
 
-        let ?subscription = Map.get(state.subscriptions, Map.nhash, thisSub.subscriptionId) else {
+        let ?subscription = BTree.get(state.subscriptions2, Nat.compare, thisSub.subscriptionId) else {
           results.add(?#Err(#SubscriptionNotFound));
           xnet += 3_000_000;
           continue proc;
@@ -564,21 +574,21 @@ module {
 
       //check
         let existingSubscriptions = do? {
-          let subAccountMap = Map.get(state.userSubscriptionIndex, Map.phash, parsedRequest.account.owner);
+          let subAccountMap = BTree.get(state.userSubscriptionIndex2, Principal.compare, parsedRequest.account.owner);
           let subBlob = subaccountToBlob(parsedRequest.account.subaccount);
-          let serviceMap = Map.get(subAccountMap!, Map.bhash, subBlob);
-          let productSubMap = Map.get(serviceMap!, Map.phash, parsedRequest.serviceCanister);
-          let productMap = Map.get(productSubMap!, nullNHash, parsedRequest.productId);
+          let serviceMap = BTree.get(subAccountMap!, Blob.compare, subBlob);
+          let productSubMap = BTree.get(serviceMap!, Principal.compare, parsedRequest.serviceCanister);
+          let productMap = BTree.get(productSubMap!, nullNcompare, parsedRequest.productId);
           productMap!;
         };
 
         switch(existingSubscriptions){
           case(null) {};
           case(?val){
-            label search for(thisSub in Set.keys(val)){
-              let ?thisSubDetail = Map.get(state.subscriptions, Map.nhash, thisSub) else continue search;
+            label search for(thisSub in BTree.entries(val)){
+              let ?thisSubDetail = BTree.get(state.subscriptions2, Nat.compare, thisSub.0) else continue search;
               if(thisSubDetail.status == #Active){
-                results.add(?#Err(#FoundActiveSubscription(thisSub)));
+                results.add(?#Err(#FoundActiveSubscription(thisSub.0)));
                 continue proc;
               };
             };
@@ -787,7 +797,7 @@ module {
         let reason = thisItem.reason;
 
         // get the subscription
-        let ?subscription = Map.get(state.subscriptions, Map.nhash, subscriptionId: Nat) else {
+        let ?subscription = BTree.get(state.subscriptions2, Nat.compare, subscriptionId: Nat) else {
           results.add(?#Err(#NotFound));
           continue proc;
         };
@@ -839,7 +849,7 @@ module {
         let active = thisItem.active;
 
         // get the subscription
-        let ?subscription = Map.get(state.subscriptions, Map.nhash, subscriptionId: Nat) else {
+        let ?subscription = BTree.get(state.subscriptions2, Nat.compare, subscriptionId: Nat) else {
           results.add(?#Err(#NotFound));
           continue proc;
         };
@@ -909,101 +919,19 @@ module {
       return Buffer.toArray(results);
     };
 
-    public func subaccountToBlob(aBlob : ?Blob) : Blob {
-      switch(aBlob){
-        case(null) nullSubaccount;
-        case(?val) val;
-      };
-    };
-
-    private func findOrCreateUserProductMap(subscription: SubscriptionState) : Set.Set<Nat> {
-
-      debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap" # debug_show(subscription));
-      
-      let accountMap : SubAccountSubscriptionMap = switch(Map.get(state.userSubscriptionIndex, Map.phash, subscription.account.owner)){
-        case(null) {
-
-          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap accountMap null" # debug_show(subscription.account.owner));
-          let accountMap = Map.new<Blob, ServiceSubscriptionMap>();
-          ignore Map.put<Principal,SubAccountSubscriptionMap>(state.userSubscriptionIndex, Map.phash, subscription.account.owner, accountMap);
-          accountMap;
-        };
-        case(?val) val;
-      };
-
-      let subBlob = subaccountToBlob(subscription.account.subaccount);
-
-      let serviceMap : ServiceSubscriptionMap = switch(Map.get(accountMap, Map.bhash, subBlob)){
-        case(null) {
-          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap serviceMap null" # debug_show(subscription.account.subaccount));
-          let serviceMap = Map.new<Principal, ProductSubscriptionMap>();
-          ignore Map.put<Blob, ServiceSubscriptionMap>(accountMap, Map.bhash, subBlob, serviceMap);
-          serviceMap;
-        };
-        case(?val) val;
-      };
-
-      let productSubMap = switch(Map.get(serviceMap, Map.phash, subscription.serviceCanister)){
-        case(null) {
-          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap productMap null" # debug_show(subscription.serviceCanister));
-          let productSubMap = Map.new<?Nat, Set.Set<Nat>>();
-          ignore Map.put(serviceMap, Map.phash, subscription.serviceCanister, productSubMap);
-          productSubMap;
-        };
-        case(?val) val;
-      };
-
-      let productMap = switch(Map.get(productSubMap, nullNHash, subscription.productId)){
-        case(null) {
-          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateUserProductMap productMap null" # debug_show(subscription.productId));
-          let productMap = Set.new<Nat>();
-          ignore Map.put(productSubMap, nullNHash, subscription.productId, productMap);
-          productMap;
-        };
-        case(?val) val;
-      };
-
-      productMap;
-    };
-
-    private func findOrCreateServiceProductMap(subscription: SubscriptionState) : Set.Set<Nat> {
-
-      debug logDebug(debug_channel.subscribe, "Subs: findOrCreateServiceProductMap" # debug_show(subscription));
-      let productSubMap = switch(Map.get(state.serviceSubscriptionIndex, Map.phash, subscription.serviceCanister)){
-        case(null) {
-          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateServiceProductMap productMap null" # debug_show(subscription.serviceCanister));
-          let productSubMap = Map.new<?Nat, Set.Set<Nat>>();
-          ignore Map.put(state.serviceSubscriptionIndex, Map.phash, subscription.serviceCanister, productSubMap);
-          productSubMap;
-        };
-        case(?val) val;
-      };
-
-      let productMap = switch(Map.get(productSubMap, nullNHash, subscription.productId)){
-        case(null) {
-          debug logDebug(debug_channel.subscribe, "Subs: findOrCreateServiceProductMap productMap null" # debug_show(subscription.productId));
-          let productMap = Set.new<Nat>();
-          ignore Map.put(productSubMap, nullNHash, subscription.productId, productMap);
-          productMap;
-        };
-        case(?val) val;
-      };
-      productMap;
-    };
-
     private func fileSubscription(subscription: SubscriptionState) : () {
 
       // Add the subscription to the userIndex
       
-      let userProductMap = findOrCreateUserProductMap(subscription);
-      let serviceProductMap = findOrCreateServiceProductMap(subscription);
+      let userProductMap = findOrCreateUserProductMap(state, subscription);
+      let serviceProductMap = findOrCreateServiceProductMap(state, subscription);
 
-      ignore Set.put(userProductMap, Set.nhash, subscription.subscriptionId);
+      ignore BTree.insert(userProductMap, Nat.compare, subscription.subscriptionId, true);
 
-      ignore Set.put(serviceProductMap, Set.nhash, subscription.subscriptionId);
+      ignore BTree.insert(serviceProductMap, Nat.compare, subscription.subscriptionId, true);
 
       // Add the subscription to the globalmap
-      ignore Map.put(state.subscriptions, Map.nhash, subscription.subscriptionId, subscription);
+      ignore BTree.insert(state.subscriptions2, Nat.compare, subscription.subscriptionId, subscription);
     };
 
     private func willCancelSubscription<system>(caller: Principal, reason: Text, subscription: SubscriptionState) : () {
@@ -1235,7 +1163,7 @@ module {
     
 
     // 2. Retrieve the subscription from the global state
-    let ?subscription = Map.get(state.subscriptions, Map.nhash, subscriptionDetails.subscriptionId) else {
+    let ?subscription = BTree.get(state.subscriptions2, Nat.compare, subscriptionDetails.subscriptionId) else {
         debug logDebug(debug_channel.announce, "Subs: subscriptionPayment subscription not found" # debug_show(subscriptionDetails.subscriptionId));
         return #err(#trappable({error_code = 2; message = "Subscription Not Found";}));
     };
@@ -1404,6 +1332,10 @@ module {
             var transactionId = ?transactionId;
             subscriptionId = subscription.subscriptionId;
             amount = total;
+            account = subscription.account;
+            targetAccount = subscription.targetAccount;
+            service = subscription.serviceCanister;
+            productId = subscription.productId;
             rate = rateUsed;
             var ledgerTransactionId = ?transactionId;
             subscription = subscription.subscriptionId;
@@ -1416,7 +1348,7 @@ module {
           debug logDebug(debug_channel.announce, "Subs: subscriptionPayment newPaymentRecord" # debug_show(newPayment));
 
           Vector.add(subscription.history, paymentId);
-          ignore Map.put(state.payments, Map.nhash, paymentId, newPayment);
+          ignore BTree.insert(state.payments2, Nat.compare, paymentId, newPayment);
           subscription.nextPaymentAmount := null; // Clear the next payment amount
 
           // 7. Schedule the next payment if not past the end date
@@ -1645,6 +1577,25 @@ module {
     };
   };
 
+  private let minPayment = {
+      account = {owner = Principal.fromText("aaaaa-aa"); subaccount = null};
+      amount = 0;
+      date = 0;
+      fee = ?0;
+      paymentId = 0;
+      brokerFee = ?0;
+      brokerTransactionId = ?0;
+      rate = null;
+      subscriptionId = 0;
+      result = #Ok;
+      service = Principal.fromText("aaaaa-aa");
+      productId = null;
+      transactionId = ?0;
+      ledgerTransactionId = ?0;
+      feeTransactionId = ?0;
+      targetAccount = null;
+    };
+
   //MARK: Queries
   public func get_user_payments(caller: Principal, filter: ?UserSubscriptionsFilter, prev: ?Nat, take: ?Nat) : [Service.PaymentRecord] {
     // Implementation of get user payments logic
@@ -1655,31 +1606,83 @@ module {
       case(?val) false;
     };
 
-    let target = switch(prev){
-      case(null) 0;
-      case(?val) val;
+    let target : Service.PaymentRecord = switch(prev){
+      case(null) minPayment;
+      case(?val){
+    
+        switch( BTree.get<Nat, PaymentRecord>(state.payments2, Nat.compare, val)){
+          case(null){ 
+            //find the closest item if any less than the id...incase it was deleted
+            let items = BTree.scanLimit(state.payments2, Nat.compare, 0, val, #bwd, 1).results;
+            if(items.size() > 0){
+              let val = items[0].1;
+              {
+                paymentId = val.paymentId;
+                date = val.date;
+                amount = val.amount;
+                fee = val.fee;
+                brokerFee = val.brokerFee;
+                brokerTransactionId = val.brokerTransactionId;
+                rate = val.rate;
+                ledgerTransactionId = val.ledgerTransactionId;
+                transactionId = val.transactionId;
+                feeTransactionId = val.feeTransactionId;
+                subscriptionId = val.subscriptionId;
+                productId = val.productId;
+                service = val.service;
+                targetAccount = val.targetAccount;
+                account = val.account;
+                result = val.result;
+              } : Service.PaymentRecord;
+            } else {
+              minPayment;
+            };
+          };
+          case(?val){
+            {
+              paymentId = val.paymentId;
+              date = val.date;
+              amount = val.amount;
+              fee = val.fee;
+              brokerFee = val.brokerFee;
+              brokerTransactionId = val.brokerTransactionId;
+              rate = val.rate;
+              ledgerTransactionId = val.ledgerTransactionId;
+              transactionId = val.transactionId;
+              feeTransactionId = val.feeTransactionId;
+              subscriptionId = val.subscriptionId;
+              productId = val.productId;
+              service = val.service;
+              targetAccount = val.targetAccount;
+              account = val.account;
+              result = val.result;
+            } : Service.PaymentRecord;
+          };
+          
+        };
+      };
     };
 
-    let ?subs = Map.get(state.userSubscriptionIndex, Map.phash, caller) else return [];
+    let ?subs = BTree.get(state.userSubscriptionIndex2, Principal.compare, caller) else return [];
     debug logDebug(debug_channel.announce, "Subs: get_user_payments index " # debug_show(subs));
 
     let results = Buffer.Buffer<Service.PaymentRecord>(1);
 
-    label subaccounts for(subaccountRecord in Map.entries(subs)){
+    label subaccounts for(subaccountRecord in BTree.entries(subs)){
       debug logDebug(debug_channel.announce, "Subs: get_user_payments subaccount" # debug_show((subaccountRecord), passesSubAccountFilter(filter, subaccountRecord.0)));
       if(passesSubAccountFilter(filter, subaccountRecord.0) == false) continue subaccounts;
-      label services for(thisService in Map.entries(subaccountRecord.1)){
+      label services for(thisService in BTree.entries(subaccountRecord.1)){
         debug logDebug(debug_channel.announce, "Subs: get_user_payments service" # debug_show(thisService));
         if(passesServiceFilter(filter, thisService.0) == false) continue services;
-        label productSubs for(thisProductSub in Map.entries(thisService.1)){
+        label productSubs for(thisProductSub in BTree.entries(thisService.1)){
           if(passesProductFilter(filter, thisProductSub.0) == false) continue productSubs;
-          label products for(thisProduct in Set.keys(thisProductSub.1)){
+          label products for(thisProduct in BTree.entries(thisProductSub.1)){
             debug logDebug(debug_channel.announce, "Subs: get_user_payments product" # debug_show(thisProduct));
             
 
-            if(passesSubscriptionFilter(filter, thisProduct) == false) continue products;
+            if(passesSubscriptionFilter(filter, thisProduct.0) == false) continue products;
             
-            let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
+            let ?subscription = BTree.get(state.subscriptions2, Nat.compare, thisProduct.0) else {
                 debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(thisProduct));
                 continue products;
             };
@@ -1688,20 +1691,11 @@ module {
           
             label payments for(payment in Vector.vals(subscription.history)){
               debug logDebug(debug_channel.announce, "Subs: get_user_payments payment" # debug_show(payment));
-              let ?paymentRecord = Map.get(state.payments, Map.nhash, payment) else {
+              let ?paymentRecord = BTree.get(state.payments2, Nat.compare, payment) else {
                 debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(payment));
                 continue products;
               };
-
-              if(bFound == false){
-                if(paymentRecord.paymentId == target){
-                  bFound := true;
-                } else {
-                  continue payments;
-                };
-              };
-              
-              results.add({
+              let thisRecord = {
                 paymentId = paymentRecord.paymentId;
                 fee = paymentRecord.fee;
                 amount = paymentRecord.amount;
@@ -1711,10 +1705,25 @@ module {
                 rate = paymentRecord.rate;
                 subscriptionId = paymentRecord.subscriptionId;
                 result = paymentRecord.result;
+                account = paymentRecord.account;
+                targetAccount = paymentRecord.targetAccount;
+                service = paymentRecord.service;
+                productId = paymentRecord.productId;
                 transactionId = paymentRecord.transactionId;
                 ledgerTransactionId = paymentRecord.ledgerTransactionId;
                 feeTransactionId = paymentRecord.feeTransactionId;
-              });
+              };
+
+              if(bFound == false){
+                if(userPaymentRecordCompare(target, thisRecord) == #less){
+                  bFound := true;
+                  //continue payments;
+                } else {
+                  continue payments;
+                };
+              };
+              
+              results.add(thisRecord);
 
               switch(take){
                 case(null) {};
@@ -1748,7 +1757,7 @@ module {
     label subs for(sub in subscriptionIds.vals()){
       
           
-      let ?subscription = Map.get(state.subscriptions, Map.nhash, sub) else {
+      let ?subscription = BTree.get(state.subscriptions2, Nat.compare, sub) else {
           debug logDebug(debug_channel.announce, "Subs: get_user_payments payment not found" # debug_show(sub));
           results.add(null);
           continue subs;
@@ -1777,9 +1786,9 @@ module {
     Buffer.toArray(results);
   };
 
-  public func get_sevice_payments(caller: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : [Service.PaymentRecord] {
+  public func get_service_payments(caller: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : [Service.PaymentRecord] {
     // Implementation of get user payments logic
-    debug logDebug(debug_channel.announce, "Subs: get_sevice_payments" # debug_show((caller, filter, prev, take)));
+    debug logDebug(debug_channel.announce, "Subs: get_service_payments" # debug_show((caller, filter, prev, take)));
 
     var bFound = switch(prev){
       case(null) true;
@@ -1787,29 +1796,80 @@ module {
     };
 
     let target = switch(prev){
-      case(null) 0;
-      case(?val) val;
+      case(null) minPayment;
+      case(?val){
+    
+        switch( BTree.get<Nat, PaymentRecord>(state.payments2, Nat.compare, val)){
+          case(null){
+            //find the closest item if any less than the id...incase it was deleted
+            let items = BTree.scanLimit(state.payments2, Nat.compare, 0, val, #bwd, 1).results;
+            if(items.size() > 0){
+              let val = items[0].1;
+              {
+                paymentId = val.paymentId;
+                date = val.date;
+                amount = val.amount;
+                fee = val.fee;
+                brokerFee = val.brokerFee;
+                brokerTransactionId = val.brokerTransactionId;
+                rate = val.rate;
+                ledgerTransactionId = val.ledgerTransactionId;
+                transactionId = val.transactionId;
+                feeTransactionId = val.feeTransactionId;
+                subscriptionId = val.subscriptionId;
+                productId = val.productId;
+                service = val.service;
+                targetAccount = val.targetAccount;
+                account = val.account;
+                result = val.result;
+              } : Service.PaymentRecord;
+            } else {
+              minPayment;
+            };
+          };
+          case(?val){
+            {
+              paymentId = val.paymentId;
+              date = val.date;
+              amount = val.amount;
+              fee = val.fee;
+              brokerFee = val.brokerFee;
+              brokerTransactionId = val.brokerTransactionId;
+              rate = val.rate;
+              ledgerTransactionId = val.ledgerTransactionId;
+              transactionId = val.transactionId;
+              feeTransactionId = val.feeTransactionId;
+              subscriptionId = val.subscriptionId;
+              productId = val.productId;
+              service = val.service;
+              targetAccount = val.targetAccount;
+              account = val.account;
+              result = val.result;
+            } : Service.PaymentRecord;
+          };
+        };
+      };
     };
 
-    let ?subs = Map.get(state.serviceSubscriptionIndex, Map.phash, caller) else return [];
+    let ?subs = BTree.get(state.serviceSubscriptionIndex2, Principal.compare, caller) else return [];
 
-    debug logDebug(debug_channel.announce, "Subs: get_sevice_payments index " # debug_show(subs));
+    debug logDebug(debug_channel.announce, "Subs: get_service_payments index " # debug_show(subs));
 
     let results = Buffer.Buffer<Service.PaymentRecord>(1);
 
     
-    label productSubs for(thisProductSub in Map.entries(subs)){
+    label productSubs for(thisProductSub in BTree.entries(subs)){
       if(passesServiceProductFilter(filter, thisProductSub.0) == false) continue productSubs;
-      label products for(thisProduct in Set.keys(thisProductSub.1)){
-        debug logDebug(debug_channel.announce, "Subs: get_sevice_payments product" # debug_show(thisProduct));
+      label products for(thisProduct in BTree.entries(thisProductSub.1)){
+        debug logDebug(debug_channel.announce, "Subs: get_service_payments product" # debug_show(thisProduct));
         
-        if(passesServiceSubscriptionFilter(filter, thisProduct) == false) continue products;
+        if(passesServiceSubscriptionFilter(filter, thisProduct.0) == false) continue products;
         
-        let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
-            debug logDebug(debug_channel.announce, "Subs: get_sevice_payments payment not found" # debug_show(thisProduct));
+        let ?subscription = BTree.get(state.subscriptions2, Nat.compare, thisProduct.0) else {
+            debug logDebug(debug_channel.announce, "Subs: get_service_payments payment not found" # debug_show(thisProduct));
             continue products;
         };
-        debug logDebug(debug_channel.announce, "Subs: get_sevice_payments subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
+        debug logDebug(debug_channel.announce, "Subs: get_service_payments subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
 
         switch(filter){
           case(null) {};
@@ -1852,24 +1912,14 @@ module {
           };
         };
 
-        for(thisPayment in Vector.vals(subscription.history)){
+        label paymentLoop for(thisPayment in Vector.vals(subscription.history)){
 
-          if(bFound == false){
-            if(thisPayment == target){
-              bFound := true;
-            } else {
-              continue products;
-            };
-          };
-
-          
-
-          let ?paymentRecord = Map.get(state.payments, Map.nhash, thisPayment) else {
-            debug logDebug(debug_channel.announce, "Subs: get_sevice_payments payment not found" # debug_show(thisProduct));
+          let ?paymentRecord = BTree.get(state.payments2, Nat.compare, thisPayment) else {
+            debug logDebug(debug_channel.announce, "Subs: get_service_payments payment not found" # debug_show(thisProduct));
             continue products;
           };
 
-          results.add({
+          let thisRecord = {
             paymentId = paymentRecord.paymentId;
             fee = paymentRecord.fee;
             amount = paymentRecord.amount;
@@ -1877,12 +1927,28 @@ module {
             brokerFee = paymentRecord.brokerFee;
             brokerTransactionId = paymentRecord.brokerTransactionId;
             rate = paymentRecord.rate;
+            targetAccount = paymentRecord.targetAccount;
+            account = paymentRecord.account;
+            service = paymentRecord.service;
+            productId = paymentRecord.productId;
             subscriptionId = paymentRecord.subscriptionId;
             result = paymentRecord.result;
             transactionId = paymentRecord.transactionId;
             ledgerTransactionId = paymentRecord.ledgerTransactionId;
             feeTransactionId = paymentRecord.feeTransactionId;
-          });
+          };
+
+          if(bFound == false){
+            logDebug(debug_channel.announce, "Subs: get_service_payments comparing" # debug_show((target, thisRecord, servicePaymentRecordCompare(target, thisRecord))));
+            if(servicePaymentRecordCompare(target, thisRecord) == #less){
+              bFound := true;
+              //continue products;
+            } else {
+              continue paymentLoop;
+            };
+          };
+
+          results.add(thisRecord);
 
           switch(take){
             case(null) {};
@@ -1900,6 +1966,24 @@ module {
     Buffer.toArray(results);
   };
 
+  let minSub = {
+    account = {owner = Principal.fromText("aaaaa-aa"); subaccount = null};
+    amountPerInterval = 0;
+    baseRateAsset = null;
+    endDate = null;
+    interval = #Daily;
+    nextPayment = null;
+    nextPaymentAmount = null;
+    productId = null;
+    serviceCanister = Principal.fromText("aaaaa-aa");
+    status = #Active;
+    subscriptionId = 0;
+    tokenCanister = Principal.fromText("aaaaa-aa");
+    tokenPointer = null;
+    brokerId = null;
+    targetAccount = null;
+  };
+
 public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptionsFilter, prev: ?Nat, take: ?Nat) : [Service.Subscription] {
     // Implementation of get user payments logic
     debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions" # debug_show((caller, filter, prev, take)));
@@ -1909,42 +1993,81 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
       case(?val) false;
     };
 
-    let target = switch(prev){
-      case(null) 0;
-      case(?val) val;
+    let target : Service.Subscription = switch(prev){
+      case(null) minSub;
+      case(?val){
+        switch( BTree.get<Nat, SubscriptionState>(state.subscriptions2, Nat.compare, val)){
+              case(null){
+                //find the closest item if any less than the id...incase it was deleted
+                let items = BTree.scanLimit(state.subscriptions2, Nat.compare, 0, val, #bwd, 1).results;
+                if(items.size() > 0){
+                  let val = items[0].1;
+                  {
+                    subscriptionId = val.subscriptionId;
+                    account = val.account;
+                    amountPerInterval = val.amountPerInterval;
+                    baseRateAsset = val.baseRateAsset;
+                    brokerId = val.brokerId;
+                    endDate = val.endDate;
+                    interval = val.interval;
+                    productId = val.productId;
+                    serviceCanister = val.serviceCanister;
+                    status = val.status;
+                    targetAccount = val.targetAccount;
+                    tokenCanister = val.tokenCanister;
+                    tokenPointer = val.tokenPointer;
+                  } : Service.Subscription;
+                  
+                } else {
+                  minSub;
+                };
+              };
+              case(?val){
+                {
+                  subscriptionId = val.subscriptionId;
+                  account = val.account;
+                  amountPerInterval = val.amountPerInterval;
+                  baseRateAsset = val.baseRateAsset;
+                  brokerId = val.brokerId;
+                  endDate = val.endDate;
+                  interval = val.interval;
+                  productId = val.productId;
+                  serviceCanister = val.serviceCanister;
+                  status = val.status;
+                  targetAccount = val.targetAccount;
+                  tokenCanister = val.tokenCanister;
+                  tokenPointer = val.tokenPointer;
+                } : Service.Subscription;
+              };
+            };
+      };
     };
 
-    let ?subs = Map.get(state.userSubscriptionIndex, Map.phash, caller) else return [];
+    let ?subs = BTree.get(state.userSubscriptionIndex2, Principal.compare, caller) else return [];
     debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions index " # debug_show(subs));
 
     let results = Buffer.Buffer<Service.Subscription>(1);
 
-    label subaccounts for(subaccountRecord in Map.entries(subs)){
+    label subaccounts for(subaccountRecord in BTree.entries(subs)){
       debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions subaccount" # debug_show((subaccountRecord), passesSubAccountFilter(filter, subaccountRecord.0)));
       if(passesSubAccountFilter(filter, subaccountRecord.0) == false) continue subaccounts;
-      label services for(thisService in Map.entries(subaccountRecord.1)){
+      label services for(thisService in BTree.entries(subaccountRecord.1)){
         debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions service" # debug_show(thisService));
         if(passesServiceFilter(filter, thisService.0) == false) continue services;
-        label productSubs for(thisProductSubs in Map.entries(thisService.1)){
+        label productSubs for(thisProductSubs in BTree.entries(thisService.1)){
           if(passesProductFilter(filter, thisProductSubs.0) == false) continue productSubs;
-          label products for(thisProduct in Set.keys(thisProductSubs.1)){
+          label products for(thisProduct in BTree.entries(thisProductSubs.1)){
             debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions product" # debug_show(thisProduct));
             
 
-            if(passesSubscriptionFilter(filter, thisProduct) == false) continue products;
+            if(passesSubscriptionFilter(filter, thisProduct.0) == false) continue products;
             
-            let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
+            let ?subscription = BTree.get(state.subscriptions2, Nat.compare, thisProduct.0) else {
                 debug logDebug(debug_channel.announce, "Subs: get_user_subscriptions payment not found" # debug_show(thisProduct));
                 continue products;
             };
 
-            if(bFound == false){
-              if(subscription.subscriptionId == target){
-                bFound := true;
-              } else {
-                continue products;
-              };
-            };
+            
 
             switch(filter){
               case(null) {};
@@ -1986,8 +2109,19 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
                 };
               };
             };
+
+            let thisSubscription = shareSubscriptionState(subscription);
+
+            if(bFound == false){
+              if(userSubscriptionCompare(target,thisSubscription) == #less){  
+                bFound := true;
+                //continue products;
+              } else {
+                continue products;
+              };
+            };
             
-            results.add(shareSubscriptionState(subscription));
+            results.add(thisSubscription);
 
             switch(take){
               case(null) {};
@@ -2006,52 +2140,91 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
     Buffer.toArray(results);
   };
 
-  public func get_sevice_subscriptions(caller: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : [Service.Subscription] {
+  public func get_service_subscriptions(caller: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : [Service.Subscription] {
       // Implementation of get user payments logic
-      debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions" # debug_show((caller, filter, prev, take)));
+      debug logDebug(debug_channel.announce, "Subs: get_service_subscriptions" # debug_show((caller, filter, prev, take)));
 
       var bFound = switch(prev){
         case(null) true;
         case(?val) false;
       };
 
-      let target = switch(prev){
-        case(null) 0;
-        case(?val) val;
+      let target : Service.Subscription = switch(prev){
+      case(null) minSub;
+      case(?val){
+        switch( BTree.get<Nat, SubscriptionState>(state.subscriptions2, Nat.compare, val)){
+          case(null){
+            //find the closest item if any less than the id...incase it was deleted
+            let items = BTree.scanLimit(state.subscriptions2, Nat.compare, 0, val, #bwd, 1).results;
+            if(items.size() > 0){
+              let val = items[0].1;
+              {
+                subscriptionId = val.subscriptionId;
+                account = val.account;
+                amountPerInterval = val.amountPerInterval;
+                baseRateAsset = val.baseRateAsset;
+                brokerId = val.brokerId;
+                endDate = val.endDate;
+                interval = val.interval;
+                productId = val.productId;
+                serviceCanister = val.serviceCanister;
+                status = val.status;
+                targetAccount = val.targetAccount;
+                tokenCanister = val.tokenCanister;
+                tokenPointer = val.tokenPointer;
+              } : Service.Subscription;
+              
+            } else {
+              minSub;
+            };
+          };
+          case(?val){
+            {
+              subscriptionId = val.subscriptionId;
+              account = val.account;
+              amountPerInterval = val.amountPerInterval;
+              baseRateAsset = val.baseRateAsset;
+              brokerId = val.brokerId;
+              endDate = val.endDate;
+              interval = val.interval;
+              productId = val.productId;
+              serviceCanister = val.serviceCanister;
+              status = val.status;
+              targetAccount = val.targetAccount;
+              tokenCanister = val.tokenCanister;
+              tokenPointer = val.tokenPointer;
+            } : Service.Subscription;
+          };
+        };
       };
+    };
 
-      let ?subs = Map.get(state.serviceSubscriptionIndex, Map.phash, caller) else return [];
+      let ?subs = BTree.get(state.serviceSubscriptionIndex2, Principal.compare, caller) else return [];
 
-      debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions index " # debug_show(subs));
+      debug logDebug(debug_channel.announce, "Subs: get_service_subscriptions index " # debug_show(subs));
 
       let results = Buffer.Buffer<Service.Subscription>(1);
 
       
-      label productSubs for(thisProductSubs in Map.entries(subs)){
+      label productSubs for(thisProductSubs in BTree.entries(subs)){
         if(passesServiceProductFilter(filter, thisProductSubs.0) == false) continue productSubs;
-        label products for(thisProduct in Set.keys(thisProductSubs.1)){
-          debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions product" # debug_show(thisProduct));
+        label products for(thisProduct in BTree.entries(thisProductSubs.1)){
+          debug logDebug(debug_channel.announce, "Subs: get_service_subscriptions product" # debug_show(thisProduct));
           
 
           
-          if(passesServiceSubscriptionFilter(filter, thisProduct) == false) continue products;
+          if(passesServiceSubscriptionFilter(filter, thisProduct.0) == false) continue products;
           
-          let ?subscription = Map.get(state.subscriptions, Map.nhash, thisProduct) else {
-              debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions payment not found" # debug_show(thisProduct));
+          let ?subscription = BTree.get(state.subscriptions2, Nat.compare, thisProduct.0) else {
+              debug logDebug(debug_channel.announce, "Subs: get_service_subscriptions payment not found" # debug_show(thisProduct));
               continue products;
           };
 
 
 
-          debug logDebug(debug_channel.announce, "Subs: get_sevice_subscriptions subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
+          debug logDebug(debug_channel.announce, "Subs: get_service_subscriptions subscription" # debug_show((subscription, Vector.toArray(subscription.history))));
 
-          if(bFound == false){
-            if(subscription.subscriptionId == target){
-              bFound := true;
-            } else {
-              continue products;
-            };
-          };
+          
 
           switch(filter){
             case(null) {};
@@ -2094,7 +2267,17 @@ public func get_user_subscriptions(caller: Principal, filter: ?UserSubscriptions
             };
           };
 
-          results.add(shareSubscriptionState(subscription));
+          let thisSubscription = shareSubscriptionState(subscription);
+
+          if(bFound == false){
+            if(serviceSubscriptionCompare(target,thisSubscription) == #less){
+              bFound := true;
+            } else {
+              continue products;
+            };
+          };
+
+          results.add(thisSubscription);
 
           switch(take){
             case(null) {};

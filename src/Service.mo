@@ -239,6 +239,28 @@ module {
     #Err: PauseError;
   };
 
+
+  public type PaymentRecordv0_1_0 = {
+    paymentId: Nat;
+    date: Nat; // Timestamp of the payment
+    amount: Nat;
+    fee: ?Nat;
+    rate: ?ExchangeRate; // if used
+    ledgerTransactionId: ?Nat;
+    transactionId: ?Nat;
+    feeTransactionId: ?Nat;
+    brokerTransactionId: ?Nat;
+    brokerFee: ?Nat;
+    subscriptionId: Nat;
+    result: {
+      #Ok;
+      #Err: {
+        code: Nat;
+        message: Text;
+      };
+    };
+  };
+
   public type PaymentRecord = {
     paymentId: Nat;
     date: Nat; // Timestamp of the payment
@@ -250,6 +272,10 @@ module {
     feeTransactionId: ?Nat;
     brokerTransactionId: ?Nat;
     brokerFee: ?Nat;
+    account: Account;
+    targetAccount: ?Account;
+    productId: ?Nat;
+    service: Principal;
     subscriptionId: Nat;
     result: {
       #Ok;
@@ -332,13 +358,16 @@ module {
     icrc79_confirm_subscription : (confirmRequests: [ConfirmRequests]) -> async [ConfirmResult];
     icrc79_pause_subscription : (req: PauseRequest) -> async [PauseResult];
 
+   
 
     icrc79_get_user_subscriptions : query (filter: ?UserSubscriptionsFilter, prev: ?Nat, take: ?Nat) -> async [Subscription];
     icrc79_get_service_subscriptions : query (service: Principal, filter: ?ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) -> async [Subscription];
     icrc79_get_user_payments : query (filter: ?UserSubscriptionsFilter, prev: ?Nat, take: ?Nat) -> async [PaymentRecord];
-    icrc79_get_payments_pending : query (subscriptionIds: [Nat]) -> async [?PendingPayment];
     icrc79_get_service_payments : query (service: Principal, filter: ?ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) -> async [PaymentRecord];
-  
+
+
+    icrc79_get_payments_pending : query (subscriptionIds: [Nat]) -> async [?PendingPayment];
+    
     icrc79_get_service_notifications : query (service: Principal, prev: ?Nat, take: ?Nat) -> async [ServiceNotification];
     icrc79_metadata : query () -> async [(Text, Value)];
     icrc79_max_query_batch_size : query () -> async Nat;

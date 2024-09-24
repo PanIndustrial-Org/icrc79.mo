@@ -124,7 +124,7 @@ module {
       };
        switch(item.productId){
         case(null){};
-        case(?val) items.add( ("prductId",#Nat(val)));
+        case(?val) items.add( ("productId",#Nat(val)));
       };
       switch(item.targetAccount){
         case(null){};

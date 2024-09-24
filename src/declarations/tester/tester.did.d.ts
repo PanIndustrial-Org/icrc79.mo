@@ -11,6 +11,7 @@ export type SubscriptionError = { 'TokenNotFound' : null } |
   { 'SubscriptionNotFound' : null } |
   { 'Duplicate' : null } |
   { 'FoundActiveSubscription' : bigint } |
+  { 'InsufficientBalance' : bigint } |
   { 'InvalidDate' : null } |
   { 'Unauthorized' : null } |
   { 'Other' : { 'code' : bigint, 'message' : string } } |

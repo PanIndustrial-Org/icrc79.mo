@@ -2,6 +2,8 @@ import D "mo:base/Debug";
 import Blob "mo:base/Blob";
 import Text "mo:base/Text";
 import Principal "mo:base/Principal";
+import Nat "mo:base/Nat";
+
 
 
 import Service "../Service";
@@ -162,7 +164,7 @@ shared (deployer) actor class Subs(initArgs: ?{
 
     public query func icrc79_get_service_subscriptions(service: Principal, filter: ?Service.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : async [Service.Subscription] {
         // Implementation of get service subscriptions logic
-        let result = q_icrc79().get_sevice_subscriptions(service, filter, prev, take);
+        let result = q_icrc79().get_service_subscriptions(service, filter, prev, take);
         result;
     };
 
@@ -172,19 +174,17 @@ shared (deployer) actor class Subs(initArgs: ?{
         q_icrc79().get_user_payments(msg.caller, filter, prev, take);
     };
 
+    public query func icrc79_get_service_payments(service: Principal, filter:?ICRC79.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : async [Service.PaymentRecord] {
+        // Implementation of get service payments logic
+         let result = q_icrc79().get_service_payments(service, filter, prev, take);
+        result;
+    };
+
     public query(msg) func icrc79_get_payments_pending(subscriptionIds: [Nat]) : async [?Service.PendingPayment] {
         // Implementation of get user pending payments logic
         debug if(debug_channel.announce) D.print("Subs:     public query func icrc79_payments_pending(subscriptionIds: [Nat]) : async [Service.PendingPayment] {" # debug_show(subscriptionIds));
         q_icrc79().get_payments_pending(msg.caller, subscriptionIds);
     };
-
-    public query func icrc79_get_service_payments(service: Principal, filter:?ICRC79.ServiceSubscriptionFilter, prev: ?Nat, take: ?Nat) : async [Service.PaymentRecord] {
-        // Implementation of get service payments logic
-         let result = q_icrc79().get_sevice_payments(service, filter, prev, take);
-        result;
-    };
-
-
 
     public query(msg) func icrc79_get_service_notifications(service: Principal, prev: ?Nat, take: ?Nat) : async [Service.ServiceNotification] {
         // Implementation of get service notifications logic

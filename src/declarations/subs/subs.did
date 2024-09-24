@@ -42,11 +42,10 @@ type TokenInfo =
 type Time = nat;
 type SubscriptionStateShared = 
  record {
-   ICRC17Endpoint: opt principal;
    account: Account;
    amountPerInterval: nat;
    baseRateAsset: opt Asset;
-   brokerId: opt principal;
+   brokerId: opt Account;
    checkRate: opt CheckRate;
    endDate: opt nat;
    history: vec nat;
@@ -80,7 +79,7 @@ type SubscriptionRequestItem =
                     Asset__1;
                     CheckRate__1;
                   };
-   broker: principal;
+   broker: Account__1;
    createdAtTime: nat;
    endDate: nat;
    firstPayment: nat;
@@ -100,6 +99,7 @@ type SubscriptionError =
    Duplicate;
    FoundActiveSubscription: nat;
    InsufficientAllowance: nat;
+   InsufficientBalance: nat;
    InvalidDate;
    InvalidInterval;
    Other: record {
@@ -115,7 +115,7 @@ type Subscription =
    account: Account__1;
    amountPerInterval: nat;
    baseRateAsset: opt Asset__1;
-   brokerId: opt principal;
+   brokerId: opt Account__1;
    endDate: opt nat;
    interval: Interval__1;
    productId: opt nat;
@@ -274,6 +274,7 @@ type PendingPayment =
  };
 type PaymentRecord = 
  record {
+   account: Account__1;
    amount: nat;
    brokerFee: opt nat;
    brokerTransactionId: opt nat;
@@ -282,6 +283,7 @@ type PaymentRecord =
    feeTransactionId: opt nat;
    ledgerTransactionId: opt nat;
    paymentId: nat;
+   productId: opt nat;
    rate: opt ExchangeRate;
    result: variant {
              Err: record {
@@ -290,7 +292,9 @@ type PaymentRecord =
                   };
              Ok;
            };
+   "service": principal;
    subscriptionId: nat;
+   targetAccount: opt Account__1;
    transactionId: opt nat;
  };
 type PauseResult = 
@@ -429,6 +433,7 @@ type CancelResult =
      };
 type CancelError = 
  variant {
+   InvalidStatus: SubStatus__1;
    NotFound;
    Other: record {
             code: nat;

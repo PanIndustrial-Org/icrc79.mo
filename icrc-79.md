@@ -252,6 +252,10 @@ type PaymentRecord = record {
     ledgerTransactionId: nat;
     transactionId: nat;
     feeTransactionId: opt nat;
+    targetAccount: opt nat;
+    account: Account;
+    productId: ?Nat;
+    service: Principal;
     subscriptionId: nat;
     result: Bool;
 };
