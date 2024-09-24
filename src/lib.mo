@@ -1578,7 +1578,7 @@ module {
   };
 
   private let minPayment = {
-      account = {owner = Principal.fromText("aaaaaa-aa"); subaccount = null};
+      account = {owner = Principal.fromText("aaaaa-aa"); subaccount = null};
       amount = 0;
       date = 0;
       fee = ?0;
@@ -1588,7 +1588,7 @@ module {
       rate = null;
       subscriptionId = 0;
       result = #Ok;
-      service = Principal.fromText("aaaaaa-aa");
+      service = Principal.fromText("aaaaa-aa");
       productId = null;
       transactionId = ?0;
       ledgerTransactionId = ?0;
@@ -1967,7 +1967,7 @@ module {
   };
 
   let minSub = {
-    account = {owner = Principal.fromText("aaaaaa-aa"); subaccount = null};
+    account = {owner = Principal.fromText("aaaaa-aa"); subaccount = null};
     amountPerInterval = 0;
     baseRateAsset = null;
     endDate = null;
@@ -1975,10 +1975,10 @@ module {
     nextPayment = null;
     nextPaymentAmount = null;
     productId = null;
-    serviceCanister = Principal.fromText("aaaaaa-aa");
+    serviceCanister = Principal.fromText("aaaaa-aa");
     status = #Active;
     subscriptionId = 0;
-    tokenCanister = Principal.fromText("aaaaaa-aa");
+    tokenCanister = Principal.fromText("aaaaa-aa");
     tokenPointer = null;
     brokerId = null;
     targetAccount = null;
