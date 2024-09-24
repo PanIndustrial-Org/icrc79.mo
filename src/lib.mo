@@ -540,6 +540,9 @@ module {
       let parsedItems = Buffer.Buffer<SubscriptionStateShared>(1);
       let now = natnow();
 
+      let newDupes = Map.new<Blob, Nat>();
+      
+
       //add items for dedup
       label preproc for(thisRequest in request.vals()){
         let parsedRequest = parseSubscriptionRequest(caller, thisRequest);
@@ -564,12 +567,29 @@ module {
           case (null) {};
         };
 
-        ignore Map.putMove<Blob,Nat>(state.recentTrx, Map.bhash, trxhash, ?natnow());
+        switch (Map.get(newDupes, Map.bhash, trxhash)) {
+          case (?found) {
+            debug logDebug(debug_channel.subscribe,"Subs: found" # debug_show(found));
+            //fail the whole batch
+            if(found + state.minDrift + state.trxWindow > now){
+              debug logDebug(debug_channel.subscribe,"Subs: found too recent " # debug_show(found));
+              return([?#Err(#Duplicate)]);
+            };
+          };
+          case (null) {};
+        };
+
+        ignore Map.put(newDupes, Map.bhash, trxhash, natnow());
       };
 
       label proc for(parsedRequest in parsedItems.vals()){
 
       //validate the subscription
+
+      let (preop, pretop) = Serializer.serializeSubRequest(parsedRequest, caller, now);
+
+      //check for duplicate
+      let trxhash = Blob.fromArray(RepIndy.hash_val(preop));
      
 
       //check
@@ -588,6 +608,7 @@ module {
             label search for(thisSub in BTree.entries(val)){
               let ?thisSubDetail = BTree.get(state.subscriptions2, Nat.compare, thisSub.0) else continue search;
               if(thisSubDetail.status == #Active){
+                ignore Map.remove(newDupes, Map.bhash, trxhash);
                 results.add(?#Err(#FoundActiveSubscription(thisSub.0)));
                 continue proc;
               };
@@ -599,6 +620,7 @@ module {
         debug logDebug(debug_channel.subscribe,"Subs: parsedRequest" # debug_show(parsedRequest));
 
         if(parsedRequest.account.owner != caller){
+          ignore Map.remove(newDupes, Map.bhash, trxhash);
           results.add(?#Err(#Unauthorized));
           continue proc;
         };
@@ -607,6 +629,7 @@ module {
         switch(parsedRequest.interval){
           case(#Interval(val)){
             if(val < 3_600_000_000_000){
+              ignore Map.remove(newDupes, Map.bhash, trxhash);
               results.add(?#Err(#InvalidInterval));
               continue proc;
             };
@@ -617,6 +640,7 @@ module {
         switch(parsedRequest.endDate){
           case(?val){
             if(val < natnow()){
+              ignore Map.remove(newDupes, Map.bhash, trxhash);
               results.add(?#Err(#InvalidDate));
               continue proc;
             };
@@ -627,6 +651,7 @@ module {
         let ?tokenInfo = switch(Map.get(state.tokenInfo, ktHash, (parsedRequest.tokenCanister, parsedRequest.tokenPointer))){
           case(null) {
             ///temp: only allow hard coded tokens
+            ignore Map.remove(newDupes, Map.bhash, trxhash);
             results.add(?#Err(#TokenNotFound));
             continue proc;
 
@@ -641,6 +666,7 @@ module {
           };
           case(?val) ?val;
         }  else {
+          ignore Map.remove(newDupes, Map.bhash, trxhash);
           results.add(?#Err(#TokenNotFound));
           continue proc;
         };
@@ -679,7 +705,7 @@ module {
 
         switch (allowanceResult) {
             case (#err(err)){
-              
+              ignore Map.remove(newDupes, Map.bhash, trxhash);
               results.add(?#Err(#InsufficientAllowance(err)));
               continue proc;
             };
@@ -766,6 +792,10 @@ module {
             subscriptionId = finalSub.subscriptionId;
             transactionId = trxId;
         })
+      };
+
+      for(thisItem in Map.entries(newDupes)){
+        ignore Map.put(state.recentTrx, Map.bhash, thisItem.0, thisItem.1);
       };
 
       cleanRecents();

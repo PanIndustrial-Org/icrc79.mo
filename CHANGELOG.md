@@ -1,3 +1,9 @@
+## v0_2_1 - 2024-09-24
+
+### Fixed
+
+- Errored Subscriptions will no longer throw duplicate warnings.
+
 ## v0_2_0 - 2024-09-24
 
 ### Fixed
